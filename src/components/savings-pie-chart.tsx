@@ -43,6 +43,8 @@ const CHART_COLORS = [
   "hsl(var(--chart-8))",
   "hsl(var(--chart-9))",
   "hsl(var(--chart-10))",
+  "hsl(var(--chart-11))",
+  "hsl(var(--chart-12))",
 ];
 
 export function SavingsPieChart({ savings, isLoaded }: SavingsPieChartProps) {
@@ -172,6 +174,7 @@ export function SavingsPieChart({ savings, isLoaded }: SavingsPieChartProps) {
               nameKey="name"
               innerRadius={60}
               strokeWidth={5}
+              isAnimationActive={true}
             >
                 <LabelList
                     dataKey="name"
@@ -227,7 +230,7 @@ export function SavingsPieChart({ savings, isLoaded }: SavingsPieChartProps) {
                         {Object.entries(categoryColors).map(([category, color]) => (
                             <div key={category} className="flex items-center justify-between">
                                 <span className="text-sm">{category}</span>
-                                <div className="flex gap-1.5">
+                                <div className="flex gap-1.5 flex-wrap">
                                     {CHART_COLORS.map(c => (
                                         <Button
                                             key={c}
