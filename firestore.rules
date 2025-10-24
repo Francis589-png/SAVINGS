@@ -1,55 +1,107 @@
 /**
- * @description This ruleset enforces a strict user-ownership model, ensuring that users can only access their own data. It prioritizes authorization independence and secure list operations.
- * @dataStructure
- *  - /users/{userId}: Stores user profiles. The 'userId' parameter corresponds to the Firebase Auth UID.
- *  - /users/{userId}/savings/{savingId}: Stores savings entries for each user. Includes denormalized 'userId' for authorization independence.
- * @keySecurityDecisions
- *  - Users can only read and write their own user documents.
- *  - Users can only create, read, update, and delete savings entries under their own user ID.
- *  - No public listing of users is allowed.
- * @denormalizationForAuthorization
- *  - Savings documents include the `userId` to allow security rules to verify ownership without additional `get()` operations.
+ * @fileoverview Firestore Security Rules for CurrencyTrack application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model. Each user can only access their own data,
+ * specifically their user profile and their savings entries. All data is nested under the /users/{userId}
+ * path to simplify access control.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profile information.
+ * - /users/{userId}/savings/{savingId}: Stores individual savings entries for each user.
+ *
+ * Key Security Decisions:
+ * - Users can only create, read, update, and delete their own user document.
+ * - Users can only create, read, update, and delete their own savings entries.
+ * - No user listing is allowed to protect user privacy.
+ *
+ * Denormalization for Authorization:
+ * - Savings documents contain a 'userId' field that MUST match the path. This is essential to avoid costly 'get()' operations in the security rules.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows a user to read and write their own user document.
+     * @description Controls access to user profiles. Only the user themselves can read, update, or delete their profile.
      * @path /users/{userId}
-     * @allow (get, create, update, delete) User with matching UID can access.
-     * @deny (get, create, update, delete) User with a non-matching UID attempts to access.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) User with UID 'user123' can create their own profile.
+     * @allow (get) User with UID 'user123' can read their own profile.
+     * @allow (update) User with UID 'user123' can update their own profile.
+     * @allow (delete) User with UID 'user123' can delete their own profile.
+     * @deny (create) User with UID 'user456' cannot create a profile with ID 'user123'.
+     * @deny (get) User with UID 'user456' cannot read the profile of user 'user123'.
+     * @deny (update) User with UID 'user456' cannot update the profile of user 'user123'.
+     * @deny (delete) User with UID 'user456' cannot delete the profile of user 'user123'.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
+      // Helper function to check if the authenticated user is the owner of the resource.
       function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
+        return request.auth.uid == userId;
       }
 
-      allow get: if isOwner(userId);
-      allow list: if false;
+      // Helper function to check if the authenticated user is the owner of the resource and it exists.
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      // Users can only create their own user document.
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) && resource.data.id == request.resource.data.id;
-      allow delete: if isOwner(userId) && resource != null;
+
+      // Users can only get their own user document.
+      allow get: if isOwner(userId);
+
+      // Users can only list their own user document (but listing is generally disallowed for /users).
+      allow list: if false;
+
+      // Users can only update their own user document, and the user ID cannot be changed.
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+
+      // Users can only delete their own user document.
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows a user to manage their own savings entries.
+     * @description Controls access to savings entries for each user. Only the user themselves can create, read, update, or delete their savings entries.
      * @path /users/{userId}/savings/{savingId}
-     * @allow (create, get, list, update, delete) User with matching UID can access savings entries under their ID.
-     * @deny (create, get, list, update, delete) User with a non-matching UID attempts to access savings entries.
-     * @principle Restricts access to a user's own savings entries.
+     * @allow (create) User with UID 'user123' can create a saving entry under their ID.
+     * @allow (get) User with UID 'user123' can read a saving entry under their ID.
+     * @allow (list) User with UID 'user123' can list savings entries under their ID.
+     * @allow (update) User with UID 'user123' can update a saving entry under their ID.
+     * @allow (delete) User with UID 'user123' can delete a saving entry under their ID.
+     * @deny (create) User with UID 'user456' cannot create a saving entry under user 'user123''s ID.
+     * @deny (get) User with UID 'user456' cannot read a saving entry under user 'user123''s ID.
+     * @deny (list) User with UID 'user456' cannot list saving entries under user 'user123''s ID.
+     * @deny (update) User with UID 'user456' cannot update a saving entry under user 'user123''s ID.
+     * @deny (delete) User with UID 'user456' cannot delete a saving entry under user 'user123''s ID.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId}/savings/{savingId} {
+      // Helper function to check if the authenticated user is the owner of the resource.
       function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
+        return request.auth.uid == userId;
       }
 
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
+      // Helper function to check if the authenticated user is the owner of the resource and it exists.
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      // Users can create savings entries under their own user ID, and the saving's userId must match the path.
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isOwner(userId) && resource != null && resource.data.userId == request.resource.data.userId;
-      allow delete: if isOwner(userId) && resource != null;
+
+      // Users can read their own savings entries.
+      allow get: if isOwner(userId);
+
+      // Users can list their own savings entries.
+      allow list: if isOwner(userId);
+
+      // Users can update their own savings entries. The userId in the document should not be changed.
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+
+      // Users can delete their own savings entries.
+      allow delete: if isExistingOwner(userId);
     }
   }
 }
