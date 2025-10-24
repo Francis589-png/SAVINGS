@@ -42,11 +42,15 @@ export function useSavings() {
     setSavings(prevSavings => [...prevSavings, savingWithId]);
   }, []);
 
+  const deleteSaving = useCallback((savingId: string) => {
+    setSavings(prevSavings => prevSavings.filter(s => s.id !== savingId));
+  }, []);
+
   const totalUSD = useMemo(() => {
     return savings.reduce((total, saving) => {
       return total + convertToUSD(saving.amount, saving.currency);
     }, 0);
   }, [savings]);
 
-  return { savings, addSaving, totalUSD, isLoaded };
+  return { savings, addSaving, deleteSaving, totalUSD, isLoaded };
 }

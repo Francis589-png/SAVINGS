@@ -8,7 +8,7 @@ import { SavingsChart } from "@/components/savings-chart";
 import { Logo } from "@/components/logo";
 
 export default function Home() {
-  const { savings, addSaving, totalUSD, isLoaded } = useSavings();
+  const { savings, addSaving, totalUSD, isLoaded, deleteSaving } = useSavings();
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground font-body">
@@ -27,7 +27,7 @@ export default function Home() {
 
           <div className="lg:col-span-2 flex flex-col gap-8">
             <SavingsChart savings={savings} isLoaded={isLoaded} />
-            <SavingsList savings={savings} isLoaded={isLoaded} />
+            <SavingsList savings={savings} isLoaded={isLoaded} deleteSaving={deleteSaving} />
           </div>
         </div>
       </main>
