@@ -68,6 +68,10 @@
           "type": "string",
           "format": "date-time",
           "description": "The timestamp when the note was last updated."
+        },
+        "signature": {
+            "type": "string",
+            "description": "A data URI of the user's signature image."
         }
       },
       "required": ["content", "updatedAt"]

@@ -21,20 +21,23 @@ export function useNotes() {
 
   const isLoaded = !isUserLoading && !isNoteLoading;
 
-  const saveNote = useCallback(async (content: string) => {
+  const saveNote = useCallback(async (content: string, signature?: string) => {
     if (!noteDocRef) {
       throw new Error("User is not authenticated. Cannot save note.");
     };
 
-    const noteData: Note = {
+    const currentSignature = signature === undefined ? note?.signature : signature;
+
+    const noteData: Partial<Note> = {
       content,
       updatedAt: new Date().toISOString(),
+      ...(currentSignature !== undefined && { signature: currentSignature }),
     };
     
     // Use a non-blocking update for a better UX.
     setDocumentNonBlocking(noteDocRef, noteData, { merge: true });
 
-  }, [noteDocRef]);
+  }, [noteDocRef, note?.signature]);
 
   if (error) {
     console.error("Error loading notes:", error);

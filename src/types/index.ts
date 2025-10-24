@@ -21,4 +21,5 @@ export type SavingEntry = {
 export type Note = {
     content: string;
     updatedAt: string; // ISO string
+    signature?: string; // Data URL of the signature image
 };
