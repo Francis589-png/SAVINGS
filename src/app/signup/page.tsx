@@ -43,7 +43,7 @@ export default function SignupPage() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(_null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -69,7 +69,9 @@ export default function SignupPage() {
       // onAuthStateChanged will redirect to '/'
     } catch (error: any) {
        console.error("Signup Error:", error.code, error.message);
-       if (error.code === 'auth/email-already-in-use') {
+       if (error.code === 'auth/invalid-api-key' || error.code === 'auth/api-key-not-valid') {
+        setAuthError("Invalid Firebase API Key. Please check your .env.local file.");
+      } else if (error.code === 'auth/email-already-in-use') {
         setAuthError("This email is already registered. Please log in instead.");
       } else {
         setAuthError("An unexpected error occurred during sign-up. Please try again.");
