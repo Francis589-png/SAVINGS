@@ -8,7 +8,6 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Pencil, Save, X } from "lucide-react";
 import { z } from "zod";
-import type { Currency } from "@/types";
 
 type SavingsTotalProps = {
   totalUSD: number;
