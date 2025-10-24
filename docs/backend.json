@@ -1,14 +1,18 @@
 {
   "entities": {
-    "SavingsEntry": {
+    "Saving": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "SavingsEntry",
+      "title": "Saving",
       "type": "object",
-      "description": "Represents a single savings entry made by the user.",
+      "description": "Represents a single savings entry made by a user.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the savings entry."
+          "description": "Unique identifier for the saving entry."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who made this saving. (Relationship: User 1:N Saving)"
         },
         "amount": {
           "type": "number",
@@ -16,25 +20,47 @@
         },
         "currency": {
           "type": "string",
-          "description": "The currency of the saved amount (USD or SLL).",
+          "description": "The currency of the saving (USD or SLL).",
           "format": "string"
         },
         "usdAmount": {
           "type": "number",
-          "description": "The equivalent amount in USD after conversion."
+          "description": "The amount saved converted to USD."
         },
-        "entryDate": {
+        "date": {
           "type": "string",
-          "description": "The date and time when the savings entry was created.",
+          "description": "The date when the saving was made.",
           "format": "date-time"
         }
       },
       "required": [
         "id",
+        "userId",
         "amount",
         "currency",
         "usdAmount",
-        "entryDate"
+        "date"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the CurrencyTrack application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        }
+      },
+      "required": [
+        "id",
+        "email"
       ]
     }
   },
@@ -47,26 +73,42 @@
   "firestore": {
     "structure": [
       {
-        "path": "/users/{userId}/savingsEntries/{savingsEntryId}",
+        "path": "/users/{userId}",
         "definition": {
-          "entityName": "SavingsEntry",
+          "entityName": "User",
           "schema": {
-            "$ref": "#/backend/entities/SavingsEntry"
+            "$ref": "#/backend/entities/User"
           },
-          "description": "Stores individual savings entries for each user. Enables path-based access control, ensuring only the user can read/write their own entries.",
+          "description": "Stores user profiles.  The 'userId' parameter corresponds to the Firebase Auth UID.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier for the user."
+              "description": "The unique identifier for the user, matching the Firebase Auth UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/savings/{savingId}",
+        "definition": {
+          "entityName": "Saving",
+          "schema": {
+            "$ref": "#/backend/entities/Saving"
+          },
+          "description": "Stores savings entries for each user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user who owns the saving entry.  Must match the Firebase Auth UID."
             },
             {
-              "name": "savingsEntryId",
-              "description": "The unique identifier for the savings entry."
+              "name": "savingId",
+              "description": "The unique identifier for the saving entry."
             }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to ensure secure and scalable management of user savings data, focusing on authorization independence and simplified security rules.  Each user has their own collection of savings entries under `/users/{userId}/savingsEntries/{savingsEntryId}`. This approach offers path-based ownership, ensuring only the authenticated user can access their savings data. This design removes the need for complex authorization logic based on parent documents, ensuring each savings entry can be independently secured. This supports atomic operations and makes debugging easier. The structure enables secure list operations since each collection only contains documents owned by a specific user, eliminating the need to filter based on user ID in the security rules (QAPs)."
+    "reasoning": "Based on the provided error and the application's requirements, the following Firestore structure is recommended. The primary issue is a permission error when attempting to `get` a document at `/users/{userId}/notes/main`. This suggests the security rules are not allowing users to read their own notes.  This design prioritizes Authorization Independence by denormalizing user IDs, and it supports secure `list` operations by using path-based ownership for savings entries.\n\n1.  **Users Collection:** Stores basic user information.\n2.  **Savings Collection:** Stores individual savings entries for each user, organized under the user's ID.\n\n**Authorization Independence:**\n\n*   The `Saving` documents will include the `userId` to avoid using `get()` in security rules to verify ownership.\n\n**QAPs (Rules are not Filters):**\n\n*   Path-based ownership (`/users/{userId}/savings/{savingId}`) ensures that list operations can be securely performed, as rules can easily filter by the user ID without needing to inspect document content."
   }
 }
