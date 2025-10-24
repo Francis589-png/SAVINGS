@@ -1,0 +1,14 @@
+# This file contains the build settings for deploying your Next.js app to Netlify.
+# https://docs.netlify.com/configure-builds/file-based-configuration/
+
+[build]
+  # This command is run to build the project.
+  command = "next build"
+  
+  # This is the directory that contains the deploy-ready assets.
+  publish = ".next"
+
+[dev]
+  # This is the command to run for local development.
+  command = "next dev"
+  port = 3000
