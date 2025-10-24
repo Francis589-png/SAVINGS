@@ -8,7 +8,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { PieChart, Pie, Cell, Tooltip } from "recharts";
+import { PieChart, Pie, Cell } from "recharts";
 import {
   Card,
   CardContent,
@@ -17,12 +17,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, PieChart as PieChartIcon } from "lucide-react";
+import { AlertCircle, PieChart as PieChartIcon, Settings } from "lucide-react";
 import { visualizeSavingCategories } from "@/ai/flows/visualize-saving-categories";
 import type { Saving } from "@/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LabelList } from "recharts";
 import { cn } from "@/lib/utils";
+import { Button } from "./ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
+import { Separator } from "./ui/separator";
 
 type SavingsPieChartProps = {
   savings: Saving[];
@@ -44,6 +47,7 @@ export function SavingsPieChart({ savings, isLoaded }: SavingsPieChartProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [is3D, setIs3D] = useState(false);
+  const [categoryColors, setCategoryColors] = useState<Record<string, string>>({});
 
   const { chartData, chartConfig } = useMemo(() => {
     const categoryTotals = savings
@@ -59,14 +63,27 @@ export function SavingsPieChart({ savings, isLoaded }: SavingsPieChartProps) {
       value: parseFloat(value.toFixed(2)),
     })).sort((a, b) => b.value - a.value);
 
+    // Initialize colors if they don't exist
+    const newCategoryColors = { ...categoryColors };
+    chartData.forEach((d, i) => {
+      if (!newCategoryColors[d.name]) {
+        newCategoryColors[d.name] = CHART_COLORS[i % CHART_COLORS.length];
+      }
+    });
+    // This is a bit of a hack to set state during render, but it's contained.
+    // A better solution would use a separate effect, but this is simpler for now.
+    if (Object.keys(newCategoryColors).length !== Object.keys(categoryColors).length) {
+      setTimeout(() => setCategoryColors(newCategoryColors), 0);
+    }
+
     const chartConfig: ChartConfig = Object.fromEntries(
-        chartData.map((d, i) => [
-            d.name, { label: d.name, color: CHART_COLORS[i % CHART_COLORS.length] }
+        chartData.map((d) => [
+            d.name, { label: d.name, color: newCategoryColors[d.name] }
         ])
     );
     
     return { chartData, chartConfig };
-  }, [savings]);
+  }, [savings, categoryColors]);
 
   useEffect(() => {
     if (chartData.length > 0 && isLoaded) {
@@ -97,6 +114,13 @@ export function SavingsPieChart({ savings, isLoaded }: SavingsPieChartProps) {
     }
   }, [chartData, isLoaded]);
 
+  const handleColorChange = (category: string, color: string) => {
+    setCategoryColors(prevColors => ({
+      ...prevColors,
+      [category]: color,
+    }));
+  };
+  
   const renderContent = () => {
     if (!isLoaded || (isLoading && chartData.length > 0)) {
       return <Skeleton className="h-[250px] w-full" />;
@@ -133,7 +157,7 @@ export function SavingsPieChart({ savings, isLoaded }: SavingsPieChartProps) {
             )}
         >
           <PieChart>
-            <Tooltip
+            <ChartTooltip
               cursor={false}
               content={<ChartTooltipContent hideLabel />}
             />
@@ -151,8 +175,8 @@ export function SavingsPieChart({ savings, isLoaded }: SavingsPieChartProps) {
                     fontSize={12}
                     formatter={(value: string) => chartConfig[value]?.label}
                 />
-              {chartData.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+              {chartData.map((entry) => (
+                <Cell key={`cell-${entry.name}`} fill={chartConfig[entry.name]?.color} />
               ))}
             </Pie>
           </PieChart>
@@ -171,16 +195,53 @@ export function SavingsPieChart({ savings, isLoaded }: SavingsPieChartProps) {
 
   return (
     <Card className="shadow-lg">
-      <CardHeader>
-        <CardTitle className="text-xl font-headline">Category Breakdown</CardTitle>
-        <CardDescription>
-          {isLoading
-            ? "Analyzing your savings categories..."
-            : visualizationType ||
-              "A breakdown of your savings will appear here."}
-        </CardDescription>
+      <CardHeader className="flex-row items-start justify-between">
+        <div>
+          <CardTitle className="text-xl font-headline">Category Breakdown</CardTitle>
+          <CardDescription>
+            {isLoading
+              ? "Analyzing your savings categories..."
+              : visualizationType ||
+                "A breakdown of your savings will appear here."}
+          </CardDescription>
+        </div>
+        <Sheet>
+            <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Settings className="h-4 w-4" />
+                </Button>
+            </SheetTrigger>
+            <SheetContent>
+                <SheetHeader>
+                    <SheetTitle>Customize Chart</SheetTitle>
+                </SheetHeader>
+                <div className="py-4 space-y-4">
+                    <Separator />
+                    <div className="space-y-2">
+                        <h4 className="font-medium text-sm">Category Colors</h4>
+                        {Object.entries(categoryColors).map(([category, color]) => (
+                            <div key={category} className="flex items-center justify-between">
+                                <span className="text-sm">{category}</span>
+                                <div className="flex gap-1.5">
+                                    {CHART_COLORS.map(c => (
+                                        <Button
+                                            key={c}
+                                            size="icon"
+                                            variant="outline"
+                                            className={cn("h-6 w-6 rounded-full p-0 border-2", color === c && "border-primary")}
+                                            style={{ backgroundColor: c }}
+                                            onClick={() => handleColorChange(category, c)}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </SheetContent>
+        </Sheet>
       </CardHeader>
-      <CardContent className="flex items-center justify-center">
+      <CardContent className="flex items-center justify-center pt-0">
         {renderContent()}
       </CardContent>
     </Card>
