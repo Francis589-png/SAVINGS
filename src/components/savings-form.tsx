@@ -38,7 +38,7 @@ export function SavingsForm({ addSaving, disabled }: SavingsFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      amount: undefined,
+      amount: "" as unknown as number, // Using an empty string for the initial value
       currency: "USD",
     },
   });
