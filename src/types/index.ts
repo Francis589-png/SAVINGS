@@ -3,6 +3,7 @@ export type Saving = {
   amount: number;
   currency: 'USD' | 'SLL';
   date: string; // ISO string
+  usdAmount: number;
 };
 
 export type Currency = 'USD' | 'SLL';

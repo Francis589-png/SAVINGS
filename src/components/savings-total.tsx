@@ -1,8 +1,9 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCurrency, SLL_TO_USD_RATE } from "@/lib/currency";
+import { formatCurrency, convertFromUSD } from "@/lib/currency";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { Currency } from "@/types";
 
 type SavingsTotalProps = {
   totalUSD: number;
@@ -10,7 +11,7 @@ type SavingsTotalProps = {
 };
 
 export function SavingsTotal({ totalUSD, isLoaded }: SavingsTotalProps) {
-  const totalSLL = totalUSD * SLL_TO_USD_RATE;
+  const totalSLL = convertFromUSD(totalUSD, 'SLL');
 
   return (
     <Card className="shadow-lg">

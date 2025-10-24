@@ -96,7 +96,7 @@ export function SavingsList({ savings, isLoaded, deleteSaving }: SavingsListProp
                         </TableCell>
                         <TableCell className="text-right">
                           {formatCurrency(
-                            (saving as any).usdAmount, // Temporary fix for usdAmount
+                            saving.usdAmount,
                             "USD"
                           )}
                         </TableCell>
