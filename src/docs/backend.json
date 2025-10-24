@@ -1,0 +1,48 @@
+
+{
+  "entities": {
+    "SavingsEntry": {
+      "title": "SavingsEntry",
+      "type": "object",
+      "description": "Represents a single savings entry made by the user.",
+      "properties": {
+        "amount": {
+          "type": "number",
+          "description": "The amount saved in the specified currency."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency of the saved amount (USD or SLL).",
+          "enum": ["USD", "SLL"]
+        },
+        "usdAmount": {
+          "type": "number",
+          "description": "The equivalent amount in USD after conversion."
+        },
+        "entryDate": {
+          "type": "string",
+          "description": "The date and time when the savings entry was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "amount",
+        "currency",
+        "usdAmount",
+        "entryDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+      "/users/{userId}/savingsEntries/{savingsEntryId}": {
+          "schema": { "$ref": "#/entities/SavingsEntry" },
+          "description": "Stores individual savings entries for each user. Enables path-based access control, ensuring only the user can read/write their own entries."
+      }
+  }
+}

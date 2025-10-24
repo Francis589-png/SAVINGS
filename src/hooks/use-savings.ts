@@ -1,56 +1,56 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import type { Saving } from '@/types';
+import { useMemo, useCallback } from 'react';
+import { collection, doc } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import type { Saving, SavingEntry } from '@/types';
 import { convertToUSD } from '@/lib/currency';
 
-const SAVINGS_STORAGE_KEY = 'currencyTrackSavings';
-
 export function useSavings() {
-  const [savings, setSavings] = useState<Saving[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    try {
-      const storedSavings = localStorage.getItem(SAVINGS_STORAGE_KEY);
-      if (storedSavings) {
-        setSavings(JSON.parse(storedSavings));
-      }
-    } catch (error) {
-      console.error("Failed to load savings from localStorage", error);
-    } finally {
-      setIsLoaded(true);
-    }
-  }, []);
+  const savingsCollectionRef = useMemoFirebase(
+    () => (user ? collection(firestore, 'users', user.uid, 'savingsEntries') : null),
+    [firestore, user]
+  );
 
-  useEffect(() => {
-    if (isLoaded) {
-      try {
-        localStorage.setItem(SAVINGS_STORAGE_KEY, JSON.stringify(savings));
-      } catch (error) {
-        console.error("Failed to save savings to localStorage", error);
-      }
-    }
-  }, [savings, isLoaded]);
+  const { data: savings, isLoading: areSavingsLoading, error } = useCollection<SavingEntry>(savingsCollectionRef);
+
+  const isLoaded = !isUserLoading && !areSavingsLoading;
 
   const addSaving = useCallback((newSaving: Omit<Saving, 'id' | 'date'>) => {
-    const savingWithId: Saving = {
-      ...newSaving,
-      id: new Date().getTime().toString(),
-      date: new Date().toISOString(),
+    if (!savingsCollectionRef) return;
+
+    const savingEntry: SavingEntry = {
+      amount: newSaving.amount,
+      currency: newSaving.currency,
+      entryDate: new Date().toISOString(),
+      usdAmount: convertToUSD(newSaving.amount, newSaving.currency)
     };
-    setSavings(prevSavings => [...prevSavings, savingWithId]);
-  }, []);
+
+    addDocumentNonBlocking(savingsCollectionRef, savingEntry);
+  }, [savingsCollectionRef]);
 
   const deleteSaving = useCallback((savingId: string) => {
-    setSavings(prevSavings => prevSavings.filter(s => s.id !== savingId));
-  }, []);
+    if (!user) return;
+    const docRef = doc(firestore, 'users', user.uid, 'savingsEntries', savingId);
+    deleteDocumentNonBlocking(docRef);
+  }, [firestore, user]);
 
   const totalUSD = useMemo(() => {
-    return savings.reduce((total, saving) => {
-      return total + convertToUSD(saving.amount, saving.currency);
+    return (savings || []).reduce((total, saving) => {
+      return total + saving.usdAmount;
     }, 0);
   }, [savings]);
 
-  return { savings, addSaving, deleteSaving, totalUSD, isLoaded };
+  const savingsWithDate = useMemo(() => {
+    return (savings || []).map(s => ({...s, id: s.id, date: s.entryDate}))
+  }, [savings]);
+
+  if (error) {
+    console.error("Error loading savings:", error);
+  }
+
+  return { savings: savingsWithDate, addSaving, deleteSaving, totalUSD, isLoaded };
 }

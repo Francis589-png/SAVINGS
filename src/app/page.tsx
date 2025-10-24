@@ -1,14 +1,24 @@
 "use client";
 
+import { useEffect } from "react";
 import { useSavings } from "@/hooks/use-savings";
 import { SavingsForm } from "@/components/savings-form";
 import { SavingsTotal } from "@/components/savings-total";
 import { SavingsList } from "@/components/savings-list";
 import { SavingsChart } from "@/components/savings-chart";
 import { Logo } from "@/components/logo";
+import { useUser, useAuth, initiateAnonymousSignIn } from "@/firebase";
 
 export default function Home() {
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const { savings, addSaving, totalUSD, isLoaded, deleteSaving } = useSavings();
+
+  useEffect(() => {
+    if (!user && !isUserLoading) {
+      initiateAnonymousSignIn(auth);
+    }
+  }, [user, isUserLoading, auth]);
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground font-body">
@@ -22,7 +32,7 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1 flex flex-col gap-8">
             <SavingsTotal totalUSD={totalUSD} isLoaded={isLoaded} />
-            <SavingsForm addSaving={addSaving} disabled={!isLoaded} />
+            <SavingsForm addSaving={addSaving} disabled={!isLoaded || !user} />
           </div>
 
           <div className="lg:col-span-2 flex flex-col gap-8">

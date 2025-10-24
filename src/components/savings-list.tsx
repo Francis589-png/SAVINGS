@@ -28,7 +28,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { formatCurrency, convertToUSD } from "@/lib/currency";
+import { formatCurrency } from "@/lib/currency";
 import type { Saving } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "./ui/button";
@@ -96,7 +96,7 @@ export function SavingsList({ savings, isLoaded, deleteSaving }: SavingsListProp
                         </TableCell>
                         <TableCell className="text-right">
                           {formatCurrency(
-                            convertToUSD(saving.amount, saving.currency),
+                            (saving as any).usdAmount, // Temporary fix for usdAmount
                             "USD"
                           )}
                         </TableCell>
