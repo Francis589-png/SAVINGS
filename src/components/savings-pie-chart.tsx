@@ -22,6 +22,7 @@ import { visualizeSavingCategories } from "@/ai/flows/visualize-saving-categorie
 import type { Saving } from "@/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LabelList } from "recharts";
+import { cn } from "@/lib/utils";
 
 type SavingsPieChartProps = {
   savings: Saving[];
@@ -42,6 +43,7 @@ export function SavingsPieChart({ savings, isLoaded }: SavingsPieChartProps) {
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [is3D, setIs3D] = useState(false);
 
   const { chartData, chartConfig } = useMemo(() => {
     const categoryTotals = savings
@@ -74,6 +76,9 @@ export function SavingsPieChart({ savings, isLoaded }: SavingsPieChartProps) {
         try {
           const result = await visualizeSavingCategories({ savingsData: chartData.map(d => ({ category: d.name, amount: d.value })) });
           setVisualizationType(result?.visualization || "pie chart");
+          if (result.visualization.toLowerCase().includes('3d')) {
+            setIs3D(true);
+          }
         } catch (e) {
           console.error("Error fetching visualization:", e);
           setError(
@@ -88,6 +93,7 @@ export function SavingsPieChart({ savings, isLoaded }: SavingsPieChartProps) {
       getVisualization();
     } else {
       setVisualizationType(null);
+      setIs3D(false);
     }
   }, [chartData, isLoaded]);
 
@@ -121,7 +127,10 @@ export function SavingsPieChart({ savings, isLoaded }: SavingsPieChartProps) {
       return (
         <ChartContainer
           config={chartConfig}
-          className="min-h-[250px] w-full"
+          className={cn(
+            "min-h-[250px] w-full transition-transform duration-500",
+            is3D && "[&_.recharts-surface]:[transform:rotateX(25deg)] [&_.recharts-pie]:[filter:drop-shadow(0_10px_5px_rgba(0,0,0,0.2))]"
+            )}
         >
           <PieChart>
             <Tooltip

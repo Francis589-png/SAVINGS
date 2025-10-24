@@ -21,7 +21,7 @@ const VisualizeSavingCategoriesInputSchema = z.object({
 export type VisualizeSavingCategoriesInput = z.infer<typeof VisualizeSavingCategoriesInputSchema>;
 
 const VisualizeSavingCategoriesOutputSchema = z.object({
-  visualization: z.string().describe('A description of how to visualize the savings categories, for example "a pie chart showing the breakdown of savings by category".'),
+  visualization: z.string().describe('A description of how to visualize the savings categories, for example "a 3D pie chart showing the breakdown of savings by category".'),
 });
 export type VisualizeSavingCategoriesOutput = z.infer<typeof VisualizeSavingCategoriesOutputSchema>;
 
@@ -33,14 +33,14 @@ const prompt = ai.definePrompt({
   name: 'visualizeSavingCategoriesPrompt',
   input: {schema: VisualizeSavingCategoriesInputSchema},
   output: {schema: VisualizeSavingCategoriesOutputSchema},
-  prompt: `You are an expert in data visualization. Given the following savings data, describe how to best visualize the data to understand the breakdown of savings by category. Be concise, and focus on describing the type of chart.
+  prompt: `You are an expert in data visualization. Given the following savings data, describe how to best visualize the data to understand the breakdown of savings by category. Always suggest a 3D visualization. Be concise, and focus on describing the type of chart.
 
 Savings Data by Category:
 {{#each savingsData}}
 - Category: {{category}}, Amount: {{amount}}
 {{/each}}
 
-Respond in the format of one sentence. For example: "A pie chart showing the breakdown of savings by category."`,
+Respond in the format of one sentence. For example: "A 3D pie chart showing the breakdown of savings by category."`,
 });
 
 const visualizeSavingCategoriesFlow = ai.defineFlow(
