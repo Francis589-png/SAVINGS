@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,10 +17,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import type { Currency } from "@/types";
+import { CURRENCIES } from "@/lib/currency";
 
 const formSchema = z.object({
   amount: z.coerce.number().positive({ message: "Amount must be a positive number." }),
-  currency: z.literal("SLL"),
+  currency: z.enum(CURRENCIES),
   category: z.string().min(1, "Category is required.").optional().default('General'),
 });
 
@@ -46,25 +50,46 @@ export function SavingsForm({ addSaving, disabled }: SavingsFormProps) {
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle className="text-xl font-headline">Add New Saving (SLL)</CardTitle>
+        <CardTitle className="text-xl font-headline">Add New Saving</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount in Leones</FormLabel>
-
-                  <FormControl>
-                    <Input type="number" placeholder="e.g., 50000" {...field} step="1" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="flex flex-col sm:flex-row gap-4">
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem className="flex-grow">
+                    <FormLabel>Amount</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="e.g., 50000" {...field} step="any" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                  control={form.control}
+                  name="currency"
+                  render={({ field }) => (
+                    <FormItem className="w-full sm:w-1/3">
+                      <FormLabel>Currency</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a currency" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+            </div>
             <FormField
               control={form.control}
               name="category"

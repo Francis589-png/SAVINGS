@@ -26,12 +26,11 @@
       "properties": {
         "amount": {
           "type": "number",
-          "description": "The amount saved in SLL."
+          "description": "The amount saved in the specified currency."
         },
         "currency": {
           "type": "string",
-          "description": "The currency of the saved amount (SLL).",
-          "enum": ["SLL"]
+          "description": "The currency of the saved amount (e.g., SLL, USD, EUR)."
         },
         "usdAmount": {
           "type": "number",

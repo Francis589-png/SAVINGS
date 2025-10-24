@@ -1,14 +1,16 @@
 
+import { CURRENCIES } from "@/lib/currency";
+
 export type Saving = {
   id: string;
   amount: number;
-  currency: 'SLL';
+  currency: Currency;
   date: string; // ISO string
   usdAmount: number;
   category: string;
 };
 
-export type Currency = 'SLL';
+export type Currency = typeof CURRENCIES[number];
 
 export type SavingEntry = {
   amount: number;
