@@ -1,8 +1,7 @@
 
-import 'dotenv/config';
-
 // This configuration is now dynamically populated from environment variables.
 // This makes the app portable and secure for deployment on platforms like Netlify.
+// Next.js automatically handles loading .env files, so no need for the dotenv package.
 export const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
