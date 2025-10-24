@@ -27,7 +27,6 @@ import { AlertCircle, LineChart as LineChartIcon } from "lucide-react";
 
 import { visualizeSavingHistory } from "@/ai/flows/visualize-saving-history";
 import type { Saving } from "@/types";
-import { convertToUSD } from "@/lib/currency";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type SavingsChartProps = {
@@ -97,12 +96,12 @@ export function SavingsChart({ savings, isLoaded }: SavingsChartProps) {
 
   const renderContent = () => {
     if (!isLoaded || (isLoading && savings.length > 1)) {
-      return <Skeleton className="h-[350px] w-full" />;
+      return <Skeleton className="h-[250px] w-full" />;
     }
 
     if (error) {
        return (
-        <Alert variant="destructive" className="h-[350px]">
+        <Alert variant="destructive" className="h-[250px]">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Visualization Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
@@ -112,7 +111,7 @@ export function SavingsChart({ savings, isLoaded }: SavingsChartProps) {
 
     if (savings.length <= 1) {
       return (
-        <div className="flex flex-col items-center justify-center h-[350px] text-center bg-muted/50 rounded-lg">
+        <div className="flex flex-col items-center justify-center h-[250px] text-center bg-muted/50 rounded-lg">
             <LineChartIcon className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground">Add more savings to see your trend.</p>
         </div>
@@ -121,7 +120,7 @@ export function SavingsChart({ savings, isLoaded }: SavingsChartProps) {
 
     if (visualizationType?.includes("line chart") && chartData.length > 0) {
       return (
-        <ChartContainer config={chartConfig} className="min-h-[350px] w-full">
+        <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
           <LineChart
             accessibilityLayer
             data={chartData}
@@ -162,14 +161,14 @@ export function SavingsChart({ savings, isLoaded }: SavingsChartProps) {
     }
     
     return (
-        <div className="flex items-center justify-center h-[350px]">
+        <div className="flex items-center justify-center h-[250px]">
           <p className="text-muted-foreground">Could not determine chart type.</p>
         </div>
       );
   };
 
   return (
-    <Card className="shadow-lg col-span-1 lg:col-span-2">
+    <Card className="shadow-lg">
       <CardHeader>
         <CardTitle className="text-xl font-headline">Savings Trend</CardTitle>
         <CardDescription>

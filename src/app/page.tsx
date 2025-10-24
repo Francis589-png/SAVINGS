@@ -6,6 +6,7 @@ import { SavingsForm } from "@/components/savings-form";
 import { SavingsTotal } from "@/components/savings-total";
 import { SavingsList } from "@/components/savings-list";
 import { SavingsChart } from "@/components/savings-chart";
+import { SavingsPieChart } from "@/components/savings-pie-chart";
 import { Logo } from "@/components/logo";
 import { useUser, useAuth, initiateAnonymousSignIn } from "@/firebase";
 
@@ -36,7 +37,10 @@ export default function Home() {
           </div>
 
           <div className="lg:col-span-2 flex flex-col gap-8">
-            <SavingsChart savings={savings} isLoaded={isLoaded} />
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+              <SavingsChart savings={savings} isLoaded={isLoaded} />
+              <SavingsPieChart savings={savings} isLoaded={isLoaded} />
+            </div>
             <SavingsList savings={savings} isLoaded={isLoaded} deleteSaving={deleteSaving} />
           </div>
         </div>
