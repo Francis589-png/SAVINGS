@@ -35,6 +35,7 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from "@/components/ui/sidebar";
+import { SavingsSummaryCard } from "@/components/savings-summary-card";
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
@@ -133,6 +134,7 @@ export default function Home() {
               <div className="lg:col-span-1 flex flex-col gap-8">
                 <SavingsTotal totalUSD={totalUSD} isLoaded={isLoaded} addSaving={addSaving} />
                 <SavingsForm addSaving={addSaving} disabled={!isLoaded || !user} />
+                <SavingsSummaryCard savings={savings} isLoaded={isLoaded} />
                 <NotesCard />
               </div>
 
