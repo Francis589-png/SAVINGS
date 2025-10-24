@@ -38,7 +38,7 @@ type SavingsChartProps = {
 const chartConfig = {
   amount: {
     label: "Savings (USD)",
-    color: "hsl(var(--primary))",
+    color: "hsl(var(--chart-1))",
   },
 } satisfies ChartConfig;
 
@@ -50,7 +50,7 @@ export function SavingsChart({ savings, isLoaded }: SavingsChartProps) {
   const chartData = useMemo(() => {
     const dailyTotals = savings.reduce<Record<string, number>>((acc, s) => {
       const dateKey = new Date(s.date).toLocaleDateString('en-CA'); // YYYY-MM-DD format
-      const usdAmount = convertToUSD(s.amount, s.currency);
+      const usdAmount = s.usdAmount;
       acc[dateKey] = (acc[dateKey] || 0) + usdAmount;
       return acc;
     }, {});
@@ -75,7 +75,7 @@ export function SavingsChart({ savings, isLoaded }: SavingsChartProps) {
         try {
           const savingHistory = savings.map((s) => ({
             date: new Date(s.date).toISOString().split("T")[0],
-            amount: convertToUSD(s.amount, s.currency),
+            amount: s.usdAmount,
           }));
 
           const result = await visualizeSavingHistory({ savingsData: savingHistory });
@@ -93,7 +93,7 @@ export function SavingsChart({ savings, isLoaded }: SavingsChartProps) {
     } else {
         setVisualizationType(null);
     }
-  }, [savings.length, isLoaded]);
+  }, [savings, isLoaded]);
 
   const renderContent = () => {
     if (!isLoaded || (isLoading && savings.length > 1)) {
