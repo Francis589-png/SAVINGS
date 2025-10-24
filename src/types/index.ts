@@ -1,13 +1,13 @@
 export type Saving = {
   id: string;
   amount: number;
-  currency: 'USD' | 'SLL';
+  currency: 'SLL';
   date: string; // ISO string
   usdAmount: number;
   category?: string;
 };
 
-export type Currency = 'USD' | 'SLL';
+export type Currency = 'SLL';
 
 export type SavingEntry = {
   amount: number;

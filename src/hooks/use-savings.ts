@@ -3,7 +3,7 @@
 import { useMemo, useCallback } from 'react';
 import { collection, doc } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import type { Saving, SavingEntry } from '@/types';
+import type { Saving, SavingEntry, Currency } from '@/types';
 import { convertToUSD } from '@/lib/currency';
 
 export function useSavings() {
@@ -19,7 +19,7 @@ export function useSavings() {
 
   const isLoaded = !isUserLoading && !areSavingsLoading;
 
-  const addSaving = useCallback((newSaving: { amount: number, currency: 'USD' | 'SLL', category?: string }) => {
+  const addSaving = useCallback((newSaving: { amount: number, currency: Currency, category?: string }) => {
     if (!savingsCollectionRef) return;
 
     const savingEntry: SavingEntry = {
@@ -46,8 +46,8 @@ export function useSavings() {
     return savings.reduce((total, saving) => total + saving.usdAmount, 0);
   }, [savings, isLoaded]);
 
-  const savingsWithDate = useMemo(() => {
-    return (savings || []).map(s => ({...s, id: s.id, date: s.entryDate}))
+  const savingsWithDate: Saving[] = useMemo(() => {
+    return (savings || []).map(s => ({...s, id: s.id, date: s.entryDate, currency: 'SLL' as const}))
   }, [savings]);
 
   if (error) {
