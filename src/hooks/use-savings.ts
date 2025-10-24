@@ -39,10 +39,11 @@ export function useSavings() {
   }, [firestore, user]);
 
   const totalUSD = useMemo(() => {
-    return (savings || []).reduce((total, saving) => {
-      return total + saving.usdAmount;
-    }, 0);
-  }, [savings]);
+    if (!isLoaded || !savings) {
+      return 0;
+    }
+    return savings.reduce((total, saving) => total + saving.usdAmount, 0);
+  }, [savings, isLoaded]);
 
   const savingsWithDate = useMemo(() => {
     return (savings || []).map(s => ({...s, id: s.id, date: s.entryDate}))
