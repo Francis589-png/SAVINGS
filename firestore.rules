@@ -1,72 +1,63 @@
 /**
- * @file Firebase Security Rules for the Savings Tracker App.
+ * @fileoverview Firestore Security Rules for the Savings Tracker App.
  *
- * @corePhilosophy This ruleset enforces a strict user-ownership model, ensuring that only the authenticated user can access their own savings data.
- * @dataStructure All savings entries are stored under the `/users/{userId}/savingsEntries/{savingsEntryId}` path, providing a clear hierarchical structure.
- * @keySecurityDecisions
- *   - Users can only access their own data; cross-user access is strictly forbidden.
- *   - The rules explicitly deny any attempt to list all users or all savings entries across users.
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model, ensuring that only
+ * authenticated users can access their own savings data. Data validation is
+ * relaxed to facilitate rapid prototyping.
+ *
+ * Data Structure:
+ * All savings entries are nested under `/users/{userId}/savingsEntries/{savingsEntryId}`.
+ *
+ * Key Security Decisions:
+ * - Users can only access their own savings entries.
+ * - List operations are restricted to the owner of the data.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Enforces user-ownership for savings entries. Only the user with the matching UID can create, read, update, or delete their own savings entries.
+     * @description Secure individual savings entries for each user.
      * @path /users/{userId}/savingsEntries/{savingsEntryId}
-     * @allow (create) - User 'AFQe994W3qWfSMx8abcoF2rcTq92' can create a savings entry with id 'entry123' under /users/AFQe994W3qWfSMx8abcoF2rcTq92/savingsEntries/entry123 if authenticated.
-     * @allow (get) - User 'AFQe994W3qWfSMx8abcoF2rcTq92' can retrieve savings entry 'entry123' under /users/AFQe994W3qWfSMx8abcoF2rcTq92/savingsEntries/entry123 if authenticated.
-     * @allow (update) - User 'AFQe994W3qWfSMx8abcoF2rcTq92' can update savings entry 'entry123' under /users/AFQe994W3qWfSMx8abcoF2rcTq92/savingsEntries/entry123 if authenticated and the document exists.
-     * @allow (delete) - User 'AFQe994W3qWfSMx8abcoF2rcTq92' can delete savings entry 'entry123' under /users/AFQe994W3qWfSMx8abcoF2rcTq92/savingsEntries/entry123 if authenticated and the document exists.
-     * @deny (create) - User 'randomUser' cannot create a savings entry under /users/AFQe994W3qWfSMx8abcoF2rcTq92/savingsEntries/entry123.
-     * @deny (get) - User 'randomUser' cannot retrieve savings entry 'entry123' under /users/AFQe994W3qWfSMx8abcoF2rcTq92/savingsEntries/entry123.
-     * @deny (update) - User 'randomUser' cannot update savings entry 'entry123' under /users/AFQe994W3qWfSMx8abcoF2rcTq92/savingsEntries/entry123.
-     * @deny (delete) - User 'randomUser' cannot delete savings entry 'entry123' under /users/AFQe994W3qWfSMx8abcoF2rcTq92/savingsEntries/entry123.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) - User 'user123' creates a new savings entry under their user ID.
+     *           request.auth.uid == 'user123' and request.resource.data.id == 'user123'
+     * @allow (get) - User 'user123' reads their own savings entry.
+     *           request.auth.uid == 'user123'
+     * @allow (update) - User 'user123' updates their own savings entry.
+     *           request.auth.uid == 'user123'
+     * @allow (delete) - User 'user123' deletes their own savings entry.
+     *           request.auth.uid == 'user123'
+     * @deny (create) - User 'user456' attempts to create a savings entry under user 'user123'.
+     *        request.auth.uid == 'user456' and request.resource.data.id == 'user123'
+     * @deny (get) - User 'user456' attempts to read a savings entry belonging to user 'user123'.
+     *           request.auth.uid == 'user456'
+     * @principle Enforces document ownership for reads and writes; validates relational integrity on create.
      */
     match /users/{userId}/savingsEntries/{savingsEntryId} {
-      // Helper function to check if the request is made by the owner of the document.
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
+      // Helper function to check if the user is signed in
+      function isSignedIn() {
+        return request.auth != null;
       }
 
-      // Helper function to check if the request is made by the owner of the existing document.
+      // Helper function to check if the user is the owner of the document
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      // Helper function to check if the user is the owner of the *existing* document
       function isExistingOwner(userId) {
         return isOwner(userId) && resource != null;
       }
 
-      // Allow reads (get) by the owner.
-      allow get: if isOwner(userId);
+      // Read permissions
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
 
-      // Allow listing savings entries for the owner.
-      allow list: if isOwner(userId);
-
-      // Allow creation of savings entries by the owner.
-      allow create: if isOwner(userId);
-
-      // Allow updates by the owner if the document exists
-      allow update: if isExistingOwner(userId);
-
-      // Allow deletes by the owner if the document exists.
+      // Write permissions
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(userId);
     }
-
-      /**
-       * @description Grants read access to a user's "notes/main" document.
-       * @path /users/{userId}/notes/main
-       * @allow (get) User 'AFQe994W3qWfSMx8abcoF2rcTq92' can get the 'main' document from their notes
-       * @deny (get) User 'anotherUserId' cannot get the 'main' document from user 'AFQe994W3qWfSMx8abcoF2rcTq92's notes.
-       */
-      match /users/{userId}/notes/main {
-          function isOwner(userId) {
-            return request.auth != null && request.auth.uid == userId;
-          }
-
-          allow get: if isOwner(userId);
-          allow create: if false;
-          allow update: if false;
-          allow delete: if false;
-          allow list: if false;
-      }
   }
 }
