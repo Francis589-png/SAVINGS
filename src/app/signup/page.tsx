@@ -24,13 +24,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useAuth, useUser } from "@/firebase";
+import { useAuth, useUser, useFirestore, setDocumentNonBlocking } from "@/firebase";
 import { Logo } from "@/components/logo";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { doc, setDoc } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
+import { doc } from "firebase/firestore";
 
 
 const formSchema = z.object({
@@ -43,7 +42,7 @@ export default function SignupPage() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
-  const [authError, setAuthError] = useState<string | null>(_null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -61,10 +60,10 @@ export default function SignupPage() {
       
       // Create a user profile document in Firestore
       const userDocRef = doc(firestore, "users", newUser.uid);
-      await setDoc(userDocRef, {
+      setDocumentNonBlocking(userDocRef, {
         email: newUser.email,
         createdAt: new Date().toISOString(),
-      });
+      }, { merge: false });
       
       // onAuthStateChanged will redirect to '/'
     } catch (error: any) {
