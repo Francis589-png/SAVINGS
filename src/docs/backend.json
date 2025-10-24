@@ -33,7 +33,8 @@
         "amount",
         "currency",
         "usdAmount",
-        "entryDate"
+        "entryDate",
+        "category"
       ]
     }
   },

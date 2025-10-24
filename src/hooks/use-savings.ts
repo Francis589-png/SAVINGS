@@ -47,7 +47,7 @@ export function useSavings() {
   }, [savings, isLoaded]);
 
   const savingsWithDate: Saving[] = useMemo(() => {
-    return (savings || []).map(s => ({...s, id: s.id, date: s.entryDate, currency: 'SLL' as const}))
+    return (savings || []).map(s => ({...s, id: s.id, date: s.entryDate, currency: 'SLL' as const, category: s.category || 'General' }))
   }, [savings]);
 
   if (error) {
