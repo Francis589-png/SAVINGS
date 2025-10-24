@@ -1,3 +1,4 @@
+
 export type Saving = {
   id: string;
   amount: number;
@@ -15,4 +16,9 @@ export type SavingEntry = {
   usdAmount: number;
   entryDate: string; // ISO string
   category: string;
+};
+
+export type Note = {
+    content: string;
+    updatedAt: string; // ISO string
 };
