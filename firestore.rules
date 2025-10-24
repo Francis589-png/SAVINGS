@@ -1,21 +1,15 @@
 /**
- * @fileoverview Firestore Security Rules for CurrencyTrack application.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model, ensuring that users can only access their own data. It prioritizes simplicity and security by leveraging path-based authorization and denormalizing user IDs within documents to avoid costly `get()` operations.
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a strict user-ownership model, ensuring that only authenticated users can access their own data.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile information, with 'userId' matching the Firebase Auth UID.
- * - /users/{userId}/savingsEntries/{savingId}: Stores individual savings entries for each user, nested under their respective user ID.
+ * - /users/{userId}: Stores user profiles, where {userId} matches the Firebase Auth UID.
+ * - /users/{userId}/savings/{savingId}: Stores savings entries for each user.
  *
  * Key Security Decisions:
- * - Users can only read and write their own user documents.
- * - Users can only create, read, update, and delete their own savings entries.
- * - List operations are allowed on a user's savings entries.
- * - Data validation is minimal in this prototype, focusing on ownership checks and relational integrity for authorization.
- *
- * Denormalization for Authorization:
- * The 'Saving' documents include the 'userId' to allow security rules to verify ownership without needing to perform extra `get()` operations. This improves performance and reduces costs.
+ * - Users can only read and write their own profiles and savings entries.
+ * - Listing all users is disallowed.
+ * - Authorization independence is achieved by denormalizing the userId into each saving document.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -24,11 +18,11 @@ service cloud.firestore {
     /**
      * @description Controls access to user profile documents.
      * @path /users/{userId}
-     * @allow (create) - If the user's auth UID matches the 'userId' path parameter.
-     * @allow (get, update, delete) - If the user's auth UID matches the 'userId' path parameter.
-     * @deny (list) - Users should not be able to list all user profiles.
-     * @deny (create, update, delete) - If the user's auth UID does not match the 'userId' path parameter.
-     * @principle Enforces document ownership for user profiles.
+     * @allow (create) - Authenticated user with matching UID can create their profile.
+     * @allow (get, update, delete) - Authenticated user with matching UID can access and modify their profile.
+     * @deny (create) - Unauthenticated user cannot create a profile.
+     * @deny (get, update, delete) - Another authenticated user cannot access or modify this profile.
+     * @principle Enforces user-ownership: Only the authenticated user can manage their own profile.
      */
     match /users/{userId} {
       function isOwner(userId) {
@@ -39,39 +33,36 @@ service cloud.firestore {
         return request.auth != null;
       }
 
-      allow get: if isSignedIn() && isOwner(userId);
+      allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
      * @description Controls access to savings entries for a specific user.
-     * @path /users/{userId}/savingsEntries/{savingId}
-     * @allow (create) - If the user's auth UID matches the 'userId' path parameter.
-     * @allow (get, list, update, delete) - If the user's auth UID matches the 'userId' path parameter.
-     * @deny (create, update, delete) - If the user's auth UID does not match the 'userId' path parameter.
-     * @principle Enforces document ownership for savings entries.
+     * @path /users/{userId}/savings/{savingId}
+     * @allow (create) - Authenticated user with matching UID can create a saving entry under their profile.
+     * @allow (get, update, delete) - Authenticated user with matching UID can access and modify their own saving entries.
+     * @allow (list) - Authenticated user with matching UID can list their savings entries.
+     * @deny (create) - Unauthenticated user cannot create a saving entry.
+     * @deny (get, update, delete) - Another authenticated user cannot access or modify this user's saving entries.
+     * @principle Enforces user-ownership: Only the authenticated user can manage their own savings entries.
      */
-    match /users/{userId}/savingsEntries/{savingId} {
+    match /users/{userId}/savings/{savingId} {
       function isOwner(userId) {
         return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource.data.userId == userId;
       }
 
       function isSignedIn() {
         return request.auth != null;
       }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && request.resource.data.userId == userId;
-      allow update: if isSignedIn() && isExistingOwner(userId) && request.resource.data.userId == userId;
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+       allow get: if isOwner(userId);
+       allow list: if isOwner(userId);
+       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+       allow update: if isOwner(userId) && resource != null;
+       allow delete: if isOwner(userId) && resource != null;
     }
   }
 }
