@@ -1,62 +1,73 @@
 /**
- * @description This ruleset enforces a strict user-ownership model for savings entries.
- * All data is nested under /users/{userId}/savingsEntries/{savingsEntryId}, ensuring
- * that each user can only access their own savings data.
+ * @fileoverview Firestore Security Rules for Savings Tracker App
  *
- * @dataStructure
- * - /users/{userId}/savingsEntries/{savingsEntryId}: Stores individual savings entries.
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for savings entries. Each user can only access their own data.
  *
- * @keySecurityDecisions
- * - Disallows listing all users.
- * - Default security posture for ambiguous relationships is strict owner-only access.
+ * Data Structure:
+ * All savings entries are nested under /users/{userId}/savingsEntries/{savingsEntryId}.
  *
- * @denormalizationForAuthorization
- * - The rules leverage path-based authorization, eliminating the need for data denormalization. The `userId` is obtained directly from the path.
+ * Key Security Decisions:
+ * - Users can only manage (create, read, update, delete) savings entries associated with their own user ID.
+ * - Listing all users is disallowed for privacy and security.
  *
- * @structuralSegregation
- * - There is no public data in this model. All savings entries are private to the user.
+ * Denormalization for Authorization:
+ *  - The `userId` is embedded in the path (`/users/{userId}/...`), enabling path-based authorization without needing to read the document.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Manages access to individual savings entries for each user.
+     * @description Manages individual savings entries for each user.
      * @path /users/{userId}/savingsEntries/{savingsEntryId}
-     * @allow (create) - Authenticated user 'yB6n7HmoroWOtETG4s5W4oSbbev1' can create a savings entry under their own user ID.
-     * @allow (get) - Authenticated user 'yB6n7HmoroWOtETG4s5W4oSbbev1' can retrieve their own savings entry.
-     * @allow (update) - Authenticated user 'yB6n7HmoroWOtETG4s5W4oSbbev1' can update their own savings entry.
-     * @allow (delete) - Authenticated user 'yB6n7HmoroWOtETG4s5W4oSbbev1' can delete their own savings entry.
-     * @deny (create) - Authenticated user 'anotherUser' cannot create a savings entry under user ID 'yB6n7HmoroWOtETG4s5W4oSbbev1'.
-     * @deny (get) - Authenticated user 'anotherUser' cannot retrieve savings entries under user ID 'yB6n7HmoroWOtETG4s5W4oSbbev1'.
-     * @deny (update) - Authenticated user 'anotherUser' cannot update savings entries under user ID 'yB6n7HmoroWOtETG4s5W4oSbbev1'.
-     * @deny (delete) - Authenticated user 'anotherUser' cannot delete savings entries under user ID 'yB6n7HmoroWOtETG4s5W4oSbbev1'.
+     * @allow (create) - User 'user123' can create a new savings entry under their user ID.
+     *    Request: { "auth": { "uid": "user123" }, "resource.data": { "id": "user123", "amount": 100, "currency": "USD", "usdAmount": 100, "entryDate": "2024-01-01T00:00:00Z" } }
+     * @allow (get) - User 'user123' can retrieve their savings entry.
+     *    Request: { "auth": { "uid": "user123" } }
+     * @allow (update) - User 'user123' can update their existing savings entry.
+     *    Request: { "auth": { "uid": "user123" }, "resource.data": { "id": "user123", "amount": 120, "currency": "USD", "usdAmount": 120, "entryDate": "2024-01-02T00:00:00Z" } }
+     * @allow (delete) - User 'user123' can delete their savings entry.
+     *    Request: { "auth": { "uid": "user123" } }
+     * @deny (create) - User 'user456' cannot create a savings entry under 'user123's ID.
+     *    Request: { "auth": { "uid": "user456" }, "resource.data": { "id": "user123", "amount": 100 } }
+     * @deny (get) - User 'user456' cannot retrieve 'user123's savings entry.
+     *    Request: { "auth": { "uid": "user456" } }
+     * @deny (update) - User 'user456' cannot update 'user123's savings entry.
+     *    Request: { "auth": { "uid": "user456" }, "resource.data": { "id": "user123", "amount": 120 } }
+     * @deny (delete) - User 'user456' cannot delete 'user123's savings entry.
+     *    Request: { "auth": { "uid": "user456" } }
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/savingsEntries/{savingsEntryId} {
-      // Helper function to check if the current user is the owner of the document.
+      // Helper function to check if the user is signed in.
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      // Helper function to check if the requesting user is the owner of the document.
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
 
-      // Helper function to check if the current user is the owner of the document AND the document exists.
+      // Helper function to check if the requesting user is the owner of the existing document.
       function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+        return isOwner(userId) && existsAfter(/databases/$(database)/documents/users/$(userId)/savingsEntries/$(savingsEntryId));
       }
 
-      // Allow the owner to read their own savings entry
+      // Allow reading data if the user is the owner.
       allow get: if isOwner(userId);
 
-      // Allow the owner to list their own savings entries
+      // Allow listing data if the user is the owner.
       allow list: if isOwner(userId);
 
-      // Allow the owner to create a new savings entry
+      // Allow creating data if the user is the owner.
       allow create: if isOwner(userId);
 
-      // Allow the owner to update their own savings entry, but enforce immutability of the userId field.
+      // Allow updating data if the user is the owner.
       allow update: if isExistingOwner(userId);
 
-      // Allow the owner to delete their own savings entry
+      // Allow deleting data if the user is the owner.
       allow delete: if isExistingOwner(userId);
     }
   }
