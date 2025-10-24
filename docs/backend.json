@@ -1,0 +1,72 @@
+{
+  "entities": {
+    "SavingsEntry": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SavingsEntry",
+      "type": "object",
+      "description": "Represents a single savings entry made by the user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the savings entry."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount saved in the specified currency."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency of the saved amount (USD or SLL).",
+          "format": "string"
+        },
+        "usdAmount": {
+          "type": "number",
+          "description": "The equivalent amount in USD after conversion."
+        },
+        "entryDate": {
+          "type": "string",
+          "description": "The date and time when the savings entry was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "amount",
+        "currency",
+        "usdAmount",
+        "entryDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}/savingsEntries/{savingsEntryId}",
+        "definition": {
+          "entityName": "SavingsEntry",
+          "schema": {
+            "$ref": "#/backend/entities/SavingsEntry"
+          },
+          "description": "Stores individual savings entries for each user. Enables path-based access control, ensuring only the user can read/write their own entries.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "savingsEntryId",
+              "description": "The unique identifier for the savings entry."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure secure and scalable management of user savings data, focusing on authorization independence and simplified security rules.  Each user has their own collection of savings entries under `/users/{userId}/savingsEntries/{savingsEntryId}`. This approach offers path-based ownership, ensuring only the authenticated user can access their savings data. This design removes the need for complex authorization logic based on parent documents, ensuring each savings entry can be independently secured. This supports atomic operations and makes debugging easier. The structure enables secure list operations since each collection only contains documents owned by a specific user, eliminating the need to filter based on user ID in the security rules (QAPs)."
+  }
+}
