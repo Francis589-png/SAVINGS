@@ -24,10 +24,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useAuth, useUser, initiateEmailSignIn } from "@/firebase";
+import { useAuth, useUser } from "@/firebase";
 import { Logo } from "@/components/logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -51,7 +52,7 @@ export default function LoginPage() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setAuthError(null);
-      await auth.signInWithEmailAndPassword(values.email, values.password);
+      await signInWithEmailAndPassword(auth, values.email, values.password);
       // onAuthStateChanged will handle the redirect
     } catch (error: any) {
       console.error("Login Error:", error.code, error.message);
