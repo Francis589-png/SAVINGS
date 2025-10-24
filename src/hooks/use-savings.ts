@@ -19,12 +19,13 @@ export function useSavings() {
 
   const isLoaded = !isUserLoading && !areSavingsLoading;
 
-  const addSaving = useCallback((newSaving: Omit<Saving, 'id' | 'date'>) => {
+  const addSaving = useCallback((newSaving: { amount: number, currency: 'USD' | 'SLL', category?: string }) => {
     if (!savingsCollectionRef) return;
 
     const savingEntry: SavingEntry = {
       amount: newSaving.amount,
       currency: newSaving.currency,
+      category: newSaving.category || 'General',
       entryDate: new Date().toISOString(),
       usdAmount: convertToUSD(newSaving.amount, newSaving.currency)
     };

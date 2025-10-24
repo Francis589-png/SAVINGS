@@ -23,6 +23,10 @@
           "type": "string",
           "description": "The date and time when the savings entry was created.",
           "format": "date-time"
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the savings entry, e.g., 'General' or 'Balance Adjustment'."
         }
       },
       "required": [

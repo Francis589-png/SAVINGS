@@ -32,7 +32,8 @@ import { formatCurrency } from "@/lib/currency";
 import type { Saving } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "./ui/button";
-import { Trash2 } from "lucide-react";
+import { FilePlus2, Trash2 } from "lucide-react";
+import { Badge } from "./ui/badge";
 
 type SavingsListProps = {
   savings: Saving[];
@@ -76,6 +77,7 @@ export function SavingsList({ savings, isLoaded, deleteSaving }: SavingsListProp
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
+                  <TableHead>Category</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead className="text-right">Value (USD)</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -90,6 +92,12 @@ export function SavingsList({ savings, isLoaded, deleteSaving }: SavingsListProp
                           {new Date(saving.date).toLocaleDateString(undefined, {
                             year: 'numeric', month: 'short', day: 'numeric'
                           })}
+                        </TableCell>
+                        <TableCell>
+                           <Badge variant={saving.category === 'Balance Adjustment' ? 'secondary' : 'outline'} className="whitespace-nowrap">
+                            {saving.category === 'Balance Adjustment' ? <FilePlus2 className="mr-1.5 h-3 w-3" /> : null}
+                            {saving.category}
+                          </Badge>
                         </TableCell>
                         <TableCell className="font-medium">
                           {formatCurrency(saving.amount, saving.currency)}
@@ -111,7 +119,7 @@ export function SavingsList({ savings, isLoaded, deleteSaving }: SavingsListProp
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                      <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
                         No savings recorded yet.
                       </TableCell>
                     </TableRow>

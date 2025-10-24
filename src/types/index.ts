@@ -4,6 +4,7 @@ export type Saving = {
   currency: 'USD' | 'SLL';
   date: string; // ISO string
   usdAmount: number;
+  category?: string;
 };
 
 export type Currency = 'USD' | 'SLL';
@@ -13,4 +14,5 @@ export type SavingEntry = {
   currency: Currency;
   usdAmount: number;
   entryDate: string; // ISO string
+  category?: string;
 };
