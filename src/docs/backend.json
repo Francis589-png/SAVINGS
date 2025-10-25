@@ -53,27 +53,6 @@
         "entryDate",
         "category"
       ]
-    },
-    "Note": {
-      "title": "Note",
-      "type": "object",
-      "description": "Represents a user's personal notes, goals, or financial will.",
-      "properties": {
-        "content": {
-          "type": "string",
-          "description": "The content of the note."
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The timestamp when the note was last updated."
-        },
-        "signature": {
-            "type": "string",
-            "description": "A data URI of the user's signature image."
-        }
-      },
-      "required": ["content", "updatedAt"]
     }
   },
   "auth": {
@@ -89,10 +68,6 @@
       "/users/{userId}/savingsEntries/{savingsEntryId}": {
           "schema": { "$ref": "#/entities/SavingsEntry" },
           "description": "Stores individual savings entries for each user. Enables path-based access control, ensuring only the user can read/write their own entries."
-      },
-      "/users/{userId}/notes/{noteId}": {
-        "schema": { "$ref": "#/entities/Note"},
-        "description": "Stores a user's personal notes. Each user has a single document for all their notes."
       }
   }
 }

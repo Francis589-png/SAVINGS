@@ -19,9 +19,3 @@ export type SavingEntry = {
   entryDate: string; // ISO string
   category: string;
 };
-
-export type Note = {
-    content: string;
-    updatedAt: string; // ISO string
-    signature?: string; // Data URL of the signature image
-};
