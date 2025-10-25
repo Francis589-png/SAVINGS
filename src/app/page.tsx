@@ -8,7 +8,6 @@ import { SavingsTotal } from "@/components/savings-total";
 import { SavingsList } from "@/components/savings-list";
 import { SavingsChart } from "@/components/savings-chart";
 import { SavingsPieChart } from "@/components/savings-pie-chart";
-import { NotesCard } from "@/components/notes-card";
 import { Logo } from "@/components/logo";
 import { useUser, useAuth } from "@/firebase";
 import { useRouter } from "next/navigation";
@@ -135,7 +134,6 @@ export default function Home() {
                 <SavingsTotal totalUSD={totalUSD} isLoaded={isLoaded} addSaving={addSaving} />
                 <SavingsForm addSaving={addSaving} disabled={!isLoaded || !user} />
                 <SavingsSummaryCard savings={savings} isLoaded={isLoaded} />
-                <NotesCard />
               </div>
 
               <div className="lg:col-span-2 flex flex-col gap-8">
