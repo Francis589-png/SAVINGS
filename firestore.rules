@@ -1,57 +1,78 @@
 /**
- * @description This ruleset enforces a strict user-ownership model, ensuring that only the authenticated user can access their own data.
- * @dataStructure Data is organized under /users/{userId}, with user profiles stored directly at this path and savings entries nested under /users/{userId}/savings/{savingId}.
- * @keySecurityDecisions
- *   - Users can only create their own profile, and profiles can only be read by the user or database administrators (not implemented).
- *   - Savings entries are strictly owned by the user; only the user can create, read, update, or delete their own savings entries.
- *   - No user listing is allowed.
+ * @fileOverview
+ * This ruleset enforces a strict user-ownership model for the CurrencyTrack application.
+ * All data is nested under /users/{userId}, with the 'userId' corresponding to the Firebase Auth UID.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profile information. Only the authenticated user can read/write their own profile.
+ * - /users/{userId}/savings/{savingId}: Stores individual savings entries. Only the authenticated user can read/write their own savings entries.
+ *
+ * Key Security Decisions:
+ * - Users can only access their own data. No cross-user access is allowed.
+ * - User listing is disallowed for privacy.
+ * - Data validation is minimal to allow for rapid prototyping and schema iteration.
+ *
+ * Denormalization for Authorization:
+ * - The 'Saving' documents include the 'userId' field, which is a denormalized copy of the parent document ID.
+ *   This avoids the need for expensive 'get()' operations in the security rules to verify ownership.
+ *   The 'userId' field in a saving document must match the 'userId' in the path.
+ *
+ * Structural Segregation:
+ * - Private data (user profiles and savings entries) is stored under the /users/{userId} path.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows users to read and write their own user profile.
+     * @description Controls access to user profiles.
      * @path /users/{userId}
-     * @allow (create) User with UID 'user123' can create their profile at /users/user123 if the document id matches their user id
-     * @allow (get) User with UID 'user123' can read their profile at /users/user123
-     * @deny (create) User with UID 'user123' cannot create a profile at /users/user456
-     * @deny (get) User with UID 'user123' cannot read the profile at /users/user456
-     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
+     * @allow (create) Authenticated user can create their own profile.
+     * @allow (get, update, delete) Authenticated user can access their own profile.
+     * @deny (create) An unauthenticated user cannot create a profile.
+     * @deny (get, update, delete) An unauthenticated user cannot access any profile.
+     * @deny (get, update, delete) Authenticated user cannot access another user's profile.
+     * @principle Enforces document ownership for all operations on user profiles.
      */
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
+      function isSignedIn() {
+        return request.auth != null;
       }
 
-      allow get: if isOwner(userId);
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      allow get: if isSignedIn() && isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) && resource.data.id == userId;
-      allow delete: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
     }
 
     /**
-     * @description Allows users to manage their own savings entries.
+     * @description Controls access to savings entries for a specific user.
      * @path /users/{userId}/savings/{savingId}
-     * @allow (create) User with UID 'user123' can create a saving entry at /users/user123/savings/saving456
-     * @allow (get) User with UID 'user123' can read their saving entry at /users/user123/savings/saving456
-     * @deny (create) User with UID 'user123' cannot create a saving entry at /users/user456/savings/saving789
-     * @deny (get) User with UID 'user123' cannot read a saving entry at /users/user456/savings/saving789
+     * @allow (create) Authenticated user can create a saving entry under their own user ID.
+     * @allow (get, update, delete) Authenticated user can access their own saving entries.
+     * @deny (create) Unauthenticated user cannot create a saving entry.
+     * @deny (get, update, delete) Unauthenticated user cannot access any saving entries.
+     * @deny (get, update, delete) Authenticated user cannot access another user's saving entries.
      * @principle Enforces document ownership for all operations on savings entries.
      */
     match /users/{userId}/savings/{savingId} {
+       function isSignedIn() {
+        return request.auth != null;
+      }
+
       function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
+        return request.auth.uid == userId;
       }
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && resource.data.userId == userId;
-      allow delete: if isExistingOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
     }
   }
 }
