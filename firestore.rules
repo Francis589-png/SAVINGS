@@ -1,63 +1,55 @@
 /**
- * @file Overview
- * This ruleset enforces a strict user-ownership model, ensuring that users can only access their own data.
- *
+ * @description This ruleset enforces a strict user-ownership model, ensuring that users can only access their own data. It prioritizes authorization independence and secure list operations.
  * @dataStructure
- * - /users/{userId}: Stores user profiles, with 'userId' matching the Firebase Auth UID.
- * - /users/{userId}/savingsEntries/{savingId}: Stores savings entries for each user. The 'userId' path segment must match the 'userId' field in the saving entry document.
- *
+ *  - /users/{userId}: Stores user profiles. The 'userId' parameter corresponds to the Firebase Auth UID.
+ *  - /users/{userId}/savings/{savingId}: Stores savings entries for each user. Includes denormalized 'userId' for authorization independence.
  * @keySecurityDecisions
- * - Users can only create, read, update, and delete their own savings entries.
- * - User listing is explicitly denied to prevent information disclosure.
- *
+ *  - Users can only read and write their own user documents.
+ *  - Users can only create, read, update, and delete savings entries under their own user ID.
+ *  - No public listing of users is allowed.
  * @denormalizationForAuthorization
- * - Savings entries include a 'userId' field that is redundantly stored. This is intentional.  It allows rules to quickly verify ownership without additional reads (get() calls).
+ *  - Savings documents include the `userId` to allow security rules to verify ownership without additional `get()` operations.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Protects the /users collection, allowing only user creation with matching UID and denying all other operations.
+     * @description Allows a user to read and write their own user document.
      * @path /users/{userId}
-     * @allow (create) User with UID 'AFQe994W3qWfSMx8abcoF2rcTq92' can create a document at /users/AFQe994W3qWfSMx8abcoF2rcTq92.
-     * @deny (get, list, update, delete) Any user cannot get, list, update, or delete any document in the /users collection.
-     * @principle Enforces strict user-ownership model.
+     * @allow (get, create, update, delete) User with matching UID can access.
+     * @deny (get, create, update, delete) User with a non-matching UID attempts to access.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
       function isOwner(userId) {
         return request.auth != null && request.auth.uid == userId;
       }
 
-      allow get: if false;
+      allow get: if isOwner(userId);
       allow list: if false;
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if false;
-      allow delete: if false;
+      allow update: if isOwner(userId) && resource.data.id == request.resource.data.id;
+      allow delete: if isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Secures savings entries under each user's path, enforcing strict ownership.
-     * @path /users/{userId}/savingsEntries/{savingId}
-     * @allow (create) User with UID 'AFQe994W3qWfSMx8abcoF2rcTq92' can create a savings entry at /users/AFQe994W3qWfSMx8abcoF2rcTq92/savingsEntries/someSavingId.
-     * @allow (get, list, update, delete) User with UID 'AFQe994W3qWfSMx8abcoF2rcTq92' can get, list, update, or delete their own savings entry at /users/AFQe994W3qWfSMx8abcoF2rcTq92/savingsEntries/someSavingId.
-     * @deny (create, get, list, update, delete) User with UID 'otherUserId' cannot access savings entries under another user's path.
-     * @principle Enforces document ownership for all operations, preventing unauthorized access to savings data.
+     * @description Allows a user to manage their own savings entries.
+     * @path /users/{userId}/savings/{savingId}
+     * @allow (create, get, list, update, delete) User with matching UID can access savings entries under their ID.
+     * @deny (create, get, list, update, delete) User with a non-matching UID attempts to access savings entries.
+     * @principle Restricts access to a user's own savings entries.
      */
-    match /users/{userId}/savingsEntries/{savingId} {
+    match /users/{userId}/savings/{savingId} {
       function isOwner(userId) {
         return request.auth != null && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
       }
 
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(userId);
+      allow update: if isOwner(userId) && resource != null && resource.data.userId == request.resource.data.userId;
+      allow delete: if isOwner(userId) && resource != null;
     }
   }
 }
