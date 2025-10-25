@@ -74,27 +74,6 @@
         }
       },
       "required": ["content", "updatedAt"]
-    },
-    "Reminder": {
-        "title": "Reminder",
-        "type": "object",
-        "description": "Represents a single to-do item or reminder for the user.",
-        "properties": {
-            "text": {
-                "type": "string",
-                "description": "The content of the reminder."
-            },
-            "completed": {
-                "type": "boolean",
-                "description": "Whether the reminder has been completed."
-            },
-            "createdAt": {
-                "type": "string",
-                "format": "date-time",
-                "description": "The timestamp when the reminder was created."
-            }
-        },
-        "required": ["text", "completed", "createdAt"]
     }
   },
   "auth": {
@@ -114,10 +93,6 @@
       "/users/{userId}/notes/{noteId}": {
         "schema": { "$ref": "#/entities/Note"},
         "description": "Stores a user's personal notes. Each user has a single document for all their notes."
-      },
-      "/users/{userId}/reminders/{reminderId}": {
-        "schema": { "$ref": "#/entities/Reminder" },
-        "description": "Stores individual reminders for each user. Path-based access control ensures data privacy."
       }
   }
 }
