@@ -3,11 +3,13 @@
 
 import { useEffect } from "react";
 import { useSavings } from "@/hooks/use-savings";
+import { useReminders } from "@/hooks/use-reminders";
 import { SavingsForm } from "@/components/savings-form";
 import { SavingsTotal } from "@/components/savings-total";
 import { SavingsList } from "@/components/savings-list";
 import { SavingsChart } from "@/components/savings-chart";
 import { SavingsPieChart } from "@/components/savings-pie-chart";
+import { RemindersList } from "@/components/reminders-list";
 import { Logo } from "@/components/logo";
 import { useUser, useAuth } from "@/firebase";
 import { useRouter } from "next/navigation";
@@ -40,7 +42,8 @@ export default function Home() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
-  const { savings, addSaving, totalUSD, isLoaded, deleteSaving } = useSavings();
+  const { savings, addSaving, totalUSD, isLoaded: savingsLoaded, deleteSaving } = useSavings();
+  const { reminders, addReminder, toggleReminder, deleteReminder, isLoading: remindersLoading } = useReminders();
 
   useEffect(() => {
     if (!user && !isUserLoading) {
@@ -131,17 +134,24 @@ export default function Home() {
           <main className="flex-grow container mx-auto p-4 md:p-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-1 flex flex-col gap-8">
-                <SavingsTotal totalUSD={totalUSD} isLoaded={isLoaded} addSaving={addSaving} />
-                <SavingsForm addSaving={addSaving} disabled={!isLoaded || !user} />
-                <SavingsSummaryCard savings={savings} isLoaded={isLoaded} />
+                <SavingsTotal totalUSD={totalUSD} isLoaded={savingsLoaded} addSaving={addSaving} />
+                <SavingsForm addSaving={addSaving} disabled={!savingsLoaded || !user} />
+                <SavingsSummaryCard savings={savings} isLoaded={savingsLoaded} />
               </div>
 
               <div className="lg:col-span-2 flex flex-col gap-8">
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                  <SavingsChart savings={savings} isLoaded={isLoaded} />
-                  <SavingsPieChart savings={savings} isLoaded={isLoaded} />
+                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                  <RemindersList 
+                    reminders={reminders}
+                    isLoading={remindersLoading}
+                    addReminder={addReminder}
+                    toggleReminder={toggleReminder}
+                    deleteReminder={deleteReminder}
+                  />
+                  <SavingsPieChart savings={savings} isLoaded={savingsLoaded} />
                 </div>
-                <SavingsList savings={savings} isLoaded={isLoaded} deleteSaving={deleteSaving} />
+                <SavingsChart savings={savings} isLoaded={savingsLoaded} />
+                <SavingsList savings={savings} isLoaded={savingsLoaded} deleteSaving={deleteSaving} />
               </div>
             </div>
           </main>
