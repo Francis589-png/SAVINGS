@@ -104,8 +104,7 @@ export default function SignupPage() {
                {authError && (
                  <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Signup Failed</AlertTitle>
-                    <AlertDescription>{authError}</AlertDescription>
+                    <AlertTitle>Signup Failed</AlertTitle>                    <AlertDescription>{authError}</AlertDescription>
                 </Alert>
               )}
               <FormField
