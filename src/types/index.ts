@@ -25,3 +25,16 @@ export type Note = {
     updatedAt: string; // ISO string
     signature?: string; // Data URL of the signature image
 };
+
+export type Reminder = {
+    id: string;
+    text: string;
+    completed: boolean;
+    createdAt: string; // ISO string
+};
+
+export type ReminderEntry = {
+    text: string;
+    completed: boolean;
+    createdAt: string; // ISO string
+};

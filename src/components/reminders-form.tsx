@@ -1,26 +1,56 @@
-import { CURRENCIES } from "@/lib/currency";
 
-export type Saving = {
-  id: string;
-  amount: number;
-  currency: Currency;
-  date: string; // ISO string
-  usdAmount: number;
-  category: string;
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+
+const formSchema = z.object({
+  text: z.string().min(1, "Reminder can't be empty."),
+});
+
+type RemindersFormProps = {
+  addReminder: (text: string) => void;
+  disabled?: boolean;
 };
 
-export type Currency = typeof CURRENCIES[number];
+export function RemindersForm({ addReminder, disabled }: RemindersFormProps) {
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      text: "",
+    },
+  });
 
-export type SavingEntry = {
-  amount: number;
-  currency: Currency;
-  usdAmount: number;
-  entryDate: string; // ISO string
-  category: string;
-};
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    addReminder(values.text);
+    form.reset();
+  }
 
-export type Note = {
-    content: string;
-    updatedAt: string; // ISO string
-    signature?: string; // Data URL of the signature image
-};
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-start gap-2">
+        <FormField
+          control={form.control}
+          name="text"
+          render={({ field }) => (
+            <FormItem className="flex-grow">
+              <FormControl>
+                <Input placeholder="Add a new reminder..." {...field} disabled={disabled} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" size="icon" disabled={disabled}>
+          <Plus className="h-4 w-4" />
+          <span className="sr-only">Add Reminder</span>
+        </Button>
+      </form>
+    </Form>
+  );
+}
