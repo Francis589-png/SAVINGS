@@ -73,7 +73,7 @@ export default function LoginPage() {
       // onAuthStateChanged will handle the redirect
     } catch (error: any) {
       console.error("Login Error:", error.code, error.message);
-      if (error.code === 'auth/invalid-api-key' || error.code === 'auth/api-key-not-valid') {
+      if (error.code === 'auth/invalid-api-key' || error.code.includes('api-key-not-valid')) {
         setAuthError("Invalid Firebase API Key. Please check your .env.local file.");
       } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         setAuthError("Invalid email or password. Please try again.");

@@ -68,7 +68,7 @@ export default function SignupPage() {
       // onAuthStateChanged will redirect to '/'
     } catch (error: any) {
        console.error("Signup Error:", error.code, error.message);
-       if (error.code === 'auth/invalid-api-key' || error.code === 'auth/api-key-not-valid') {
+       if (error.code === 'auth/invalid-api-key' || error.code.includes('api-key-not-valid')) {
         setAuthError("Invalid Firebase API Key. Please check your .env.local file.");
       } else if (error.code === 'auth/email-already-in-use') {
         setAuthError("This email is already registered. Please log in instead.");
