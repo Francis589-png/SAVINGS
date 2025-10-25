@@ -128,17 +128,21 @@ export default function Home() {
             </div>
           </header>
 
-          <main className="flex-grow container mx-auto p-4 md:p-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-1 flex flex-col gap-8">
+          <main className="flex-grow container mx-auto p-4 md:p-6 lg:p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
+              <div className="lg:col-span-1 xl:col-span-1 flex flex-col gap-6 lg:gap-8">
                 <SavingsTotal totalUSD={totalUSD} isLoaded={savingsLoaded} addSaving={addSaving} />
                 <SavingsForm addSaving={addSaving} disabled={!savingsLoaded || !user} />
               </div>
 
-              <div className="lg:col-span-2 flex flex-col gap-8">
-                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                  <SavingsPieChart savings={savings} isLoaded={savingsLoaded} />
-                  <SavingsSummaryCard savings={savings} isLoaded={savingsLoaded} />
+              <div className="lg:col-span-2 xl:col-span-3 flex flex-col gap-6 lg:gap-8">
+                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
+                  <div className="xl:col-span-2">
+                    <SavingsPieChart savings={savings} isLoaded={savingsLoaded} />
+                  </div>
+                  <div className="md:col-span-2 xl:col-span-1">
+                    <SavingsSummaryCard savings={savings} isLoaded={savingsLoaded} />
+                  </div>
                 </div>
                 <SavingsChart savings={savings} isLoaded={savingsLoaded} />
                 <SavingsList savings={savings} isLoaded={savingsLoaded} deleteSaving={deleteSaving} />
