@@ -3,13 +3,11 @@
 
 import { useEffect } from "react";
 import { useSavings } from "@/hooks/use-savings";
-import { useReminders } from "@/hooks/use-reminders";
 import { SavingsForm } from "@/components/savings-form";
 import { SavingsTotal } from "@/components/savings-total";
 import { SavingsList } from "@/components/savings-list";
 import { SavingsChart } from "@/components/savings-chart";
 import { SavingsPieChart } from "@/components/savings-pie-chart";
-import { RemindersList } from "@/components/reminders-list";
 import { Logo } from "@/components/logo";
 import { useUser, useAuth } from "@/firebase";
 import { useRouter } from "next/navigation";
@@ -43,7 +41,6 @@ export default function Home() {
   const auth = useAuth();
   const router = useRouter();
   const { savings, addSaving, totalUSD, isLoaded: savingsLoaded, deleteSaving } = useSavings();
-  const { reminders, addReminder, toggleReminder, deleteReminder, isLoading: remindersLoading } = useReminders();
 
   useEffect(() => {
     if (!user && !isUserLoading) {
@@ -141,13 +138,6 @@ export default function Home() {
 
               <div className="lg:col-span-2 flex flex-col gap-8">
                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                  <RemindersList 
-                    reminders={reminders}
-                    isLoading={remindersLoading}
-                    addReminder={addReminder}
-                    toggleReminder={toggleReminder}
-                    deleteReminder={deleteReminder}
-                  />
                   <SavingsPieChart savings={savings} isLoaded={savingsLoaded} />
                 </div>
                 <SavingsChart savings={savings} isLoaded={savingsLoaded} />
