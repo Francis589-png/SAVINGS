@@ -35,6 +35,7 @@ import {
   SidebarInset,
 } from "@/components/ui/sidebar";
 import { SavingsSummaryCard } from "@/components/savings-summary-card";
+import { FinancialWill } from "@/components/financial-will";
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
@@ -133,6 +134,7 @@ export default function Home() {
               <div className="lg:col-span-1 flex flex-col gap-8">
                 <SavingsTotal totalUSD={totalUSD} isLoaded={savingsLoaded} addSaving={addSaving} />
                 <SavingsForm addSaving={addSaving} disabled={!savingsLoaded || !user} />
+                <FinancialWill />
               </div>
 
               <div className="lg:col-span-2 flex flex-col gap-8">
