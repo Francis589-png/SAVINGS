@@ -11,12 +11,12 @@
 // NEXT_PUBLIC_FIREBASE_APP_ID="..."
 
 export const firebaseConfig = {
-  apiKey: "AIzaSyA24v4iWVhGzWcC6Kq7HJwBd008OK67jjM",
-  authDomain: "studio-3779562519-32e28.firebaseapp.com",
-  projectId: "studio-3779562519-32e28",
-  storageBucket: "studio-3779562519-32e28.firebasestorage.app",
-  messagingSenderId: "575434011687",
-  appId: "1:575434011687:web:2540316fc52b5037c04a02"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
 // Basic validation to ensure environment variables are loaded.
@@ -26,3 +26,4 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     with your Firebase project credentials. Some Firebase features may not work correctly.
   `);
 }
+
