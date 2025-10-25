@@ -27,8 +27,9 @@ import { Input } from "@/components/ui/input";
 import { useAuth, useUser } from "@/firebase";
 import { Logo } from "@/components/logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { AlertCircle, User as UserIcon } from "lucide-react";
+import { signInWithEmailAndPassword, signInAnonymously } from "firebase/auth";
+import { Separator } from "@/components/ui/separator";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -40,6 +41,7 @@ export default function LoginPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -49,7 +51,22 @@ export default function LoginPage() {
     },
   });
 
+  const handleAnonymousSignIn = async () => {
+    setIsSubmitting(true);
+    setAuthError(null);
+    try {
+      await signInAnonymously(auth);
+      // onAuthStateChanged will handle the redirect
+    } catch (error: any) {
+      console.error("Anonymous Sign-In Error:", error);
+      setAuthError("Could not sign in anonymously. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
     try {
       setAuthError(null);
       await signInWithEmailAndPassword(auth, values.email, values.password);
@@ -63,6 +80,8 @@ export default function LoginPage() {
       } else {
         setAuthError("An unexpected error occurred. Please try again later.");
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -122,11 +141,26 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Signing In..." : "Sign In"}
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting && form.formState.isSubmitting ? "Signing In..." : "Sign In"}
               </Button>
             </form>
           </Form>
+
+          <div className="relative my-4">
+            <Separator />
+            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2">
+                <div className="flex justify-center">
+                    <span className="bg-background px-2 text-xs uppercase text-muted-foreground">Or continue with</span>
+                </div>
+            </div>
+          </div>
+
+          <Button variant="outline" className="w-full" onClick={handleAnonymousSignIn} disabled={isSubmitting}>
+             <UserIcon className="mr-2 h-4 w-4" />
+             Sign In Anonymously
+          </Button>
+
           <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{" "}
             <Link href="/signup" className="underline">
