@@ -1,72 +1,56 @@
 /**
- * @fileoverview Firestore Security Rules for CurrencyTrack application.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model.  Users can only
- * access their own data, preventing unauthorized access.
- *
- * Data Structure:
- * - /users/{userId}: Stores user profiles. 'userId' must match the Firebase Auth UID.
- * - /users/{userId}/savings/{savingId}: Stores savings entries for a specific user. The 'userId' in the path must match the Firebase Auth UID.
- *
- * Key Security Decisions:
- * - Users can only read, create, update, and delete their own user documents and savings entries.
- * - Listing savings entries is restricted to the owner of the user ID in the path.
- * - Data validation is minimal in this prototyping phase, focusing on ownership and relational integrity.
- * - Denormalization: Savings documents contain the userId to avoid get() calls in rules.
+ * @description This ruleset enforces a strict user-ownership model, ensuring that only the authenticated user can access their own data.
+ * @dataStructure Data is organized under /users/{userId}, with user profiles stored directly at this path and savings entries nested under /users/{userId}/savings/{savingId}.
+ * @keySecurityDecisions
+ *   - Users can only create their own profile, and profiles can only be read by the user or database administrators (not implemented).
+ *   - Savings entries are strictly owned by the user; only the user can create, read, update, or delete their own savings entries.
+ *   - No user listing is allowed.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows users to manage their own user profiles.
+     * @description Allows users to read and write their own user profile.
      * @path /users/{userId}
-     * @allow (create) User with matching auth UID can create their profile.
-     * @allow (get, update, delete) User with matching auth UID can get, update, and delete their profile.
-     * @deny (create) User tries to create a profile with a different userId.
-     * @deny (get, update, delete) User tries to access another user's profile.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) User with UID 'user123' can create their profile at /users/user123 if the document id matches their user id
+     * @allow (get) User with UID 'user123' can read their profile at /users/user123
+     * @deny (create) User with UID 'user123' cannot create a profile at /users/user456
+     * @deny (get) User with UID 'user123' cannot read the profile at /users/user456
+     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
      */
     match /users/{userId} {
       function isOwner(userId) {
         return request.auth != null && request.auth.uid == userId;
       }
 
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
       allow get: if isOwner(userId);
-      allow list: if false; // Listing users is not permitted.
+      allow list: if false;
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+      allow update: if isOwner(userId) && resource.data.id == userId;
+      allow delete: if false;
     }
 
     /**
      * @description Allows users to manage their own savings entries.
      * @path /users/{userId}/savings/{savingId}
-     * @allow (create) User with matching auth UID can create a saving entry.
-     * @allow (get, update, delete) User with matching auth UID can get, update, and delete their saving entry.
-     * @allow (list) User can list their own saving entries.
-     * @deny (create) User tries to create a saving entry with a different userId.
-     * @deny (get, update, delete) User tries to access another user's saving entry.
-     * @principle Enforces document ownership and relational integrity for savings entries.
+     * @allow (create) User with UID 'user123' can create a saving entry at /users/user123/savings/saving456
+     * @allow (get) User with UID 'user123' can read their saving entry at /users/user123/savings/saving456
+     * @deny (create) User with UID 'user123' cannot create a saving entry at /users/user456/savings/saving789
+     * @deny (get) User with UID 'user123' cannot read a saving entry at /users/user456/savings/saving789
+     * @principle Enforces document ownership for all operations on savings entries.
      */
     match /users/{userId}/savings/{savingId} {
       function isOwner(userId) {
         return request.auth != null && request.auth.uid == userId;
       }
-
       function isExistingOwner(userId) {
         return isOwner(userId) && resource != null;
       }
-
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow update: if isExistingOwner(userId) && resource.data.userId == userId;
       allow delete: if isExistingOwner(userId);
     }
   }
