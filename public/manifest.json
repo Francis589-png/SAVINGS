@@ -1,0 +1,21 @@
+{
+  "name": "CurrencyTrack",
+  "short_name": "CurrencyTrack",
+  "description": "Track your savings across different currencies.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDFBFA",
+  "theme_color": "#3A6B4B",
+  "icons": [
+    {
+      "src": "icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
