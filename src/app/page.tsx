@@ -92,11 +92,13 @@ export default function Home() {
         <div className="flex flex-col min-h-screen bg-background text-foreground font-body">
           <header className="p-4 border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
             <div className="container mx-auto flex justify-between items-center">
-              <div className="md:hidden">
-                <SidebarTrigger />
-              </div>
-              <div className="hidden md:block">
-                <h1 className="text-2xl font-bold text-primary">Dashboard</h1>
+              <div className="flex items-center gap-4">
+                <div className="md:hidden">
+                  <SidebarTrigger />
+                </div>
+                <div className="hidden md:block">
+                  <h1 className="text-2xl font-bold text-primary">Dashboard</h1>
+                </div>
               </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
