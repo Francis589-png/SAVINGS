@@ -38,6 +38,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Ensure webpack-based build/workbox plugin compatibility
+  // (Next 16+ enables Turbopack by default). Setting an empty
+  // turbopack config silences the Turbopack vs webpack conflict
+  // so `next build --webpack` can run and allow next-pwa to
+  // inject the service worker.
+  turbopack: {},
 };
 
 export default pwaConfig(nextConfig);
