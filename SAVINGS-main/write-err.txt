@@ -1,0 +1,14 @@
+ZodError: [
+  {
+    "code": "invalid_type",
+    "expected": "object",
+    "received": "number",
+    "path": [],
+    "message": "Expected object, received number"
+  }
+]
+    at get error (C:\Users\FRANCIS JUSU\Downloads\SAVINGS-main\SAVINGS-main\node_modules\zod\lib\types.js:55:31)
+    at ZodObject.parse (C:\Users\FRANCIS JUSU\Downloads\SAVINGS-main\SAVINGS-main\node_modules\zod\lib\types.js:131:22)
+    at Object.cover (C:\Users\FRANCIS JUSU\Downloads\SAVINGS-main\SAVINGS-main\node_modules\@jimp\plugin-cover\dist\commonjs\index.js:31:121)
+    at Jimp.<computed> [as cover] (C:\Users\FRANCIS JUSU\Downloads\SAVINGS-main\SAVINGS-main\node_modules\@jimp\core\dist\commonjs\index.js:94:54)
+    at [eval]:1:127

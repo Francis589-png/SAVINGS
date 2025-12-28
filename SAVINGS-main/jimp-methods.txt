@@ -1,0 +1,16 @@
+clone
+composite
+constructor
+getBase64
+getBuffer
+getPixelColor
+getPixelIndex
+hasAlpha
+inspect
+scan
+scanIterator
+setPixelColor
+toString
+write
+cover:function
+resize:function
