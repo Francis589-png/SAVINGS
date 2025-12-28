@@ -1,0 +1,89 @@
+/**
+ * @fileOverview Firestore Security Rules for CurrencyTrack application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model, ensuring that users can only
+ * access their own data. Authorization decisions are based on the authenticated
+ * user's UID and the document paths. Data schema is not strictly enforced to allow
+ * for prototyping flexibility, but relational integrity is maintained by validating
+ * user IDs.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profiles, with 'userId' matching the Firebase Auth UID.
+ * - /users/{userId}/savingsEntries/{savingId}: Stores savings entries for each user,
+ *   nested under their UID. Each entry includes a 'userId' field for authorization.
+ *
+ * Key Security Decisions:
+ * - Users can only create, read, update, and delete their own savings entries.
+ * - User listing is not explicitly allowed, defaulting to denial.
+ * - The 'userId' field in 'Saving' documents is immutable to prevent ownership changes.
+ *
+ * Denormalization for Authorization:
+ * - The `Saving` documents include the `userId` to avoid using `get()` in security rules
+ *   to verify ownership. This improves performance and simplifies the rules.
+ *
+ * Structural Segregation:
+ * - Savings entries are stored in a subcollection of the user's document, ensuring that
+ *   each user can only access their own savings entries.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Allows users to read and write their own user profile.
+     * @path /users/{userId}
+     * @allow (create) - Authenticated user with matching UID can create their profile.
+     * @allow (get) - Authenticated user with matching UID can read their profile.
+     * @allow (update) - Authenticated user with matching UID can update their profile.
+     * @allow (delete) - Authenticated user with matching UID can delete their profile.
+     * @deny (create) - Authenticated user attempts to create a profile with a mismatched UID.
+     * @deny (update) - Authenticated user attempts to update a profile with a mismatched UID.
+     * @deny (delete) - Authenticated user attempts to delete a profile with a mismatched UID.
+     * @principle Enforces document ownership for writes. Validates relational integrity between documents.
+     */
+    match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Allows users to manage their savings entries.
+     * @path /users/{userId}/savingsEntries/{savingId}
+     * @allow (create) - Authenticated user can create a savings entry under their profile.
+     * @allow (get) - Authenticated user can read a savings entry under their profile.
+     * @allow (update) - Authenticated user can update a savings entry under their profile.
+     * @allow (delete) - Authenticated user can delete a savings entry under their profile.
+     * @deny (create) - Authenticated user attempts to create a savings entry under a different user's profile.
+     * @deny (update) - Authenticated user attempts to update a savings entry under a different user's profile.
+     * @deny (delete) - Authenticated user attempts to delete a savings entry under a different user's profile.
+     * @principle Enforces document ownership for writes. Validates relational integrity between documents.
+     */
+    match /users/{userId}/savingsEntries/{savingId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+  }
+}

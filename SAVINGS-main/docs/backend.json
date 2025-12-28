@@ -1,0 +1,114 @@
+{
+  "entities": {
+    "Saving": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Saving",
+      "type": "object",
+      "description": "Represents a single savings entry made by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the saving entry."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who made this saving. (Relationship: User 1:N Saving)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount saved in the specified currency."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency of the saving (USD or SLL).",
+          "format": "string"
+        },
+        "usdAmount": {
+          "type": "number",
+          "description": "The amount saved converted to USD."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date when the saving was made.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "amount",
+        "currency",
+        "usdAmount",
+        "date"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the CurrencyTrack application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        }
+      },
+      "required": [
+        "id",
+        "email"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles.  The 'userId' parameter corresponds to the Firebase Auth UID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user, matching the Firebase Auth UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/savings/{savingId}",
+        "definition": {
+          "entityName": "Saving",
+          "schema": {
+            "$ref": "#/backend/entities/Saving"
+          },
+          "description": "Stores savings entries for each user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user who owns the saving entry.  Must match the Firebase Auth UID."
+            },
+            {
+              "name": "savingId",
+              "description": "The unique identifier for the saving entry."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "Based on the provided error and the application's requirements, the following Firestore structure is recommended. The primary issue is a permission error when attempting to `get` a document at `/users/{userId}/notes/main`. This suggests the security rules are not allowing users to read their own notes.  This design prioritizes Authorization Independence by denormalizing user IDs, and it supports secure `list` operations by using path-based ownership for savings entries.\n\n1.  **Users Collection:** Stores basic user information.\n2.  **Savings Collection:** Stores individual savings entries for each user, organized under the user's ID.\n\n**Authorization Independence:**\n\n*   The `Saving` documents will include the `userId` to avoid using `get()` in security rules to verify ownership.\n\n**QAPs (Rules are not Filters):**\n\n*   Path-based ownership (`/users/{userId}/savings/{savingId}`) ensures that list operations can be securely performed, as rules can easily filter by the user ID without needing to inspect document content."
+  }
+}
