@@ -2,18 +2,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from '@/lib/utils';
 import { FirebaseClientProvider } from '@/firebase';
 import { SplashScreen } from '@/components/splash-screen';
-
-// This metadata is still useful for SEO, but we'll control the title dynamically.
-// export const metadata: Metadata = {
-//   title: 'CurrencyTrack',
-//   description: 'Track your savings across different currencies.',
-// };
 
 export default function RootLayout({
   children,
@@ -23,11 +16,13 @@ export default function RootLayout({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    // Keep the branded splash visible long enough to actually see the
+    // JUSU letter-by-letter animation on fast connections.
+    const timer = window.setTimeout(() => {
       setIsLoading(false);
-    }, 3000);
+    }, 6000);
 
-    return () => clearTimeout(timer);
+    return () => window.clearTimeout(timer);
   }, []);
   
   return (
@@ -42,7 +37,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-152x152.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
       </head>
       <body className={cn("min-h-screen bg-background font-body antialiased")}>
         {isLoading ? (
