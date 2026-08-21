@@ -9,31 +9,14 @@ import { SavingsChart } from "@/components/savings-chart";
 import { SavingsPieChart } from "@/components/savings-pie-chart";
 import { Logo } from "@/components/logo";
 import { JusuLoader } from "@/components/jusu-loader";
+import { CurrencyConverter } from "@/components/currency-converter";
 import { useUser, useAuth } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LogOut, User as UserIcon, LayoutDashboard, Plus, Sparkles, Wallet, TrendingUp, PiggyBank } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  SidebarProvider,
-  Sidebar,
-  SidebarHeader,
-  SidebarContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarFooter,
-  SidebarTrigger,
-  SidebarInset,
-} from "@/components/ui/sidebar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { SavingsSummaryCard } from "@/components/savings-summary-card";
 
 export default function Home() {
@@ -41,138 +24,13 @@ export default function Home() {
   const auth = useAuth();
   const router = useRouter();
   const { savings, addSaving, totalUSD, isLoaded: savingsLoaded, deleteSaving } = useSavings();
-
-  useEffect(() => {
-    if (!user && !isUserLoading) router.push("/login");
-  }, [user, isUserLoading, router]);
-
+  useEffect(() => { if (!user && !isUserLoading) router.push("/login"); }, [user, isUserLoading, router]);
   const handleLogout = () => auth.signOut();
   const getInitials = (email?: string | null) => email?.charAt(0).toUpperCase() ?? "?";
   const contributionCount = savings.length;
   const averageContribution = contributionCount > 0 ? totalUSD / contributionCount : 0;
   const latestContribution = savings.length > 0 ? [...savings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0] : null;
+  if (isUserLoading || !user) return <JusuLoader />;
 
-  if (isUserLoading) return <JusuLoader />;
-  if (!user) return <JusuLoader />;
-
-  return (
-    <SidebarProvider>
-      <Sidebar className="border-r border-border/60 bg-card/70 backdrop-blur-xl">
-        <SidebarHeader className="border-b border-border/50 p-5">
-          <Logo />
-        </SidebarHeader>
-        <SidebarContent className="px-3 py-5">
-          <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Workspace</p>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton isActive className="h-11 rounded-xl font-medium">
-                <LayoutDashboard />
-                Dashboard
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter className="border-t border-border/50 p-4">
-          <div className="rounded-2xl bg-primary/[0.07] p-4">
-            <div className="mb-2 flex items-center gap-2 text-primary"><Sparkles className="h-4 w-4" /><span className="text-xs font-semibold">Stay on track</span></div>
-            <p className="text-xs leading-5 text-muted-foreground">Small, consistent deposits can turn into meaningful savings.</p>
-          </div>
-        </SidebarFooter>
-      </Sidebar>
-
-      <SidebarInset>
-        <div className="min-h-screen bg-background text-foreground">
-          <header className="sticky top-0 z-30 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-            <div className="mx-auto flex h-[72px] max-w-[1600px] items-center justify-between px-4 sm:px-6 lg:px-8">
-              <div className="flex items-center gap-3">
-                <SidebarTrigger className="rounded-xl md:hidden" />
-                <div>
-                  <p className="hidden text-xs font-medium text-muted-foreground sm:block">Your money, organized</p>
-                  <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Dashboard</h1>
-                </div>
-              </div>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-10 w-10 rounded-full p-0 ring-offset-background transition hover:ring-2 hover:ring-primary/20">
-                    <Avatar className="h-10 w-10 border border-border/60">
-                      <AvatarImage src={user.photoURL ?? ""} alt={user.email ?? "Account"} />
-                      <AvatarFallback className="bg-primary/10 font-semibold text-primary">
-                        {user.isAnonymous ? <UserIcon className="h-5 w-5" /> : getInitials(user.email)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-60 rounded-2xl p-2" align="end" forceMount>
-                  <DropdownMenuLabel className="px-3 py-2 font-normal">
-                    <p className="text-sm font-semibold">My Account</p>
-                    <p className="mt-1 truncate text-xs text-muted-foreground">{user.isAnonymous ? "Anonymous User" : user.email}</p>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="rounded-xl">
-                    <LogOut className="mr-2 h-4 w-4" /> Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </header>
-
-          <main className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-            <section className="mb-7 overflow-hidden rounded-[28px] border border-primary/10 bg-gradient-to-br from-primary/[0.13] via-card to-card p-6 shadow-sm sm:p-8">
-              <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
-                <div className="max-w-2xl">
-                  <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-background/70 px-3 py-1.5 text-xs font-semibold text-primary backdrop-blur">
-                    <Sparkles className="h-3.5 w-3.5" /> Financial overview
-                  </div>
-                  <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Build your savings, one step at a time.</h2>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">Track contributions, understand your progress, and keep your financial goals visible.</p>
-                </div>
-                <Button className="h-11 rounded-xl px-5 shadow-lg shadow-primary/15" onClick={() => document.getElementById("add-saving")?.scrollIntoView({ behavior: "smooth" })}>
-                  <Plus className="mr-2 h-4 w-4" /> Add savings
-                </Button>
-              </div>
-            </section>
-
-            <section className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="group rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                <div className="mb-4 flex items-center justify-between"><span className="text-sm font-medium text-muted-foreground">Contributions</span><div className="rounded-xl bg-primary/10 p-2 text-primary"><Wallet className="h-4 w-4" /></div></div>
-                <p className="text-2xl font-bold tracking-tight">{savingsLoaded ? contributionCount : "—"}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Total deposits recorded</p>
-              </div>
-              <div className="group rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                <div className="mb-4 flex items-center justify-between"><span className="text-sm font-medium text-muted-foreground">Average deposit</span><div className="rounded-xl bg-emerald-500/10 p-2 text-emerald-600"><TrendingUp className="h-4 w-4" /></div></div>
-                <p className="text-2xl font-bold tracking-tight">{savingsLoaded ? `$${averageContribution.toFixed(2)}` : "—"}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Across all recorded contributions</p>
-              </div>
-              <div className="group rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                <div className="mb-4 flex items-center justify-between"><span className="text-sm font-medium text-muted-foreground">Latest activity</span><div className="rounded-xl bg-amber-500/10 p-2 text-amber-600"><PiggyBank className="h-4 w-4" /></div></div>
-                <p className="truncate text-2xl font-bold tracking-tight">{savingsLoaded && latestContribution ? `$${latestContribution.usdAmount.toFixed(2)}` : savingsLoaded ? "$0.00" : "—"}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Most recent contribution</p>
-              </div>
-            </section>
-
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-              <aside id="add-saving" className="space-y-6 xl:sticky xl:top-[96px] xl:self-start">
-                <SavingsTotal totalUSD={totalUSD} isLoaded={savingsLoaded} addSaving={addSaving} />
-                <SavingsForm addSaving={addSaving} disabled={!savingsLoaded || !user} />
-              </aside>
-
-              <div className="min-w-0 space-y-6">
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-                  <div className="lg:col-span-3"><SavingsPieChart savings={savings} isLoaded={savingsLoaded} /></div>
-                  <div className="lg:col-span-2"><SavingsSummaryCard savings={savings} isLoaded={savingsLoaded} /></div>
-                </div>
-                <SavingsChart savings={savings} isLoaded={savingsLoaded} />
-                <SavingsList savings={savings} isLoaded={savingsLoaded} deleteSaving={deleteSaving} />
-              </div>
-            </div>
-          </main>
-
-          <footer className="border-t border-border/50 px-6 py-8 text-center text-xs text-muted-foreground">
-            <p>Built for financial freedom · JUSU © {new Date().getFullYear()}</p>
-          </footer>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
-  );
+  return <SidebarProvider><Sidebar className="border-r border-border/60 bg-card/70 backdrop-blur-xl"><SidebarHeader className="border-b border-border/50 p-5"><Logo /></SidebarHeader><SidebarContent className="px-3 py-5"><p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Workspace</p><SidebarMenu><SidebarMenuItem><SidebarMenuButton isActive className="h-11 rounded-xl font-medium"><LayoutDashboard />Dashboard</SidebarMenuButton></SidebarMenuItem></SidebarMenu></SidebarContent><SidebarFooter className="border-t border-border/50 p-4"><div className="rounded-2xl bg-primary/[0.07] p-4"><div className="mb-2 flex items-center gap-2 text-primary"><Sparkles className="h-4 w-4" /><span className="text-xs font-semibold">Stay on track</span></div><p className="text-xs leading-5 text-muted-foreground">Small, consistent deposits can turn into meaningful savings.</p></div></SidebarFooter></Sidebar><SidebarInset><div className="min-h-screen bg-background text-foreground"><header className="sticky top-0 z-30 border-b border-border/50 bg-background/80 backdrop-blur-xl"><div className="mx-auto flex h-[72px] max-w-[1600px] items-center justify-between px-4 sm:px-6 lg:px-8"><div className="flex items-center gap-3"><SidebarTrigger className="rounded-xl md:hidden" /><div><p className="hidden text-xs font-medium text-muted-foreground sm:block">Your money, organized</p><h1 className="text-xl font-bold tracking-tight sm:text-2xl">Dashboard</h1></div></div><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" className="h-10 w-10 rounded-full p-0 ring-offset-background transition hover:ring-2 hover:ring-primary/20"><Avatar className="h-10 w-10 border border-border/60"><AvatarImage src={user.photoURL ?? ""} alt={user.email ?? "Account"} /><AvatarFallback className="bg-primary/10 font-semibold text-primary">{user.isAnonymous ? <UserIcon className="h-5 w-5" /> : getInitials(user.email)}</AvatarFallback></Avatar></Button></DropdownMenuTrigger><DropdownMenuContent className="w-60 rounded-2xl p-2" align="end"><DropdownMenuLabel className="px-3 py-2 font-normal"><p className="text-sm font-semibold">My Account</p><p className="mt-1 truncate text-xs text-muted-foreground">{user.isAnonymous ? "Anonymous User" : user.email}</p></DropdownMenuLabel><DropdownMenuSeparator /><DropdownMenuItem onClick={handleLogout} className="rounded-xl"><LogOut className="mr-2 h-4 w-4" />Log out</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></header><main className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8"><section className="mb-7 overflow-hidden rounded-[28px] border border-primary/10 bg-gradient-to-br from-primary/[0.13] via-card to-card p-6 shadow-sm sm:p-8"><div className="flex flex-col justify-between gap-6 md:flex-row md:items-center"><div className="max-w-2xl"><div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-background/70 px-3 py-1.5 text-xs font-semibold text-primary backdrop-blur"><Sparkles className="h-3.5 w-3.5" />Financial overview</div><h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Build your savings, one step at a time.</h2><p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">Track contributions, understand your progress, and keep your financial goals visible.</p></div><Button className="h-11 rounded-xl px-5 shadow-lg shadow-primary/15" onClick={() => document.getElementById("add-saving")?.scrollIntoView({ behavior: "smooth" })}><Plus className="mr-2 h-4 w-4" />Add savings</Button></div></section><section className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3"><div className="group rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><div className="mb-4 flex items-center justify-between"><span className="text-sm font-medium text-muted-foreground">Contributions</span><div className="rounded-xl bg-primary/10 p-2 text-primary"><Wallet className="h-4 w-4" /></div></div><p className="text-2xl font-bold tracking-tight">{savingsLoaded ? contributionCount : "—"}</p><p className="mt-1 text-xs text-muted-foreground">Total deposits recorded</p></div><div className="group rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><div className="mb-4 flex items-center justify-between"><span className="text-sm font-medium text-muted-foreground">Average deposit</span><div className="rounded-xl bg-emerald-500/10 p-2 text-emerald-600"><TrendingUp className="h-4 w-4" /></div></div><p className="text-2xl font-bold tracking-tight">{savingsLoaded ? `$${averageContribution.toFixed(2)}` : "—"}</p><p className="mt-1 text-xs text-muted-foreground">Across all recorded contributions</p></div><div className="group rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><div className="mb-4 flex items-center justify-between"><span className="text-sm font-medium text-muted-foreground">Latest activity</span><div className="rounded-xl bg-amber-500/10 p-2 text-amber-600"><PiggyBank className="h-4 w-4" /></div></div><p className="truncate text-2xl font-bold tracking-tight">{savingsLoaded && latestContribution ? `$${latestContribution.usdAmount.toFixed(2)}` : savingsLoaded ? "$0.00" : "—"}</p><p className="mt-1 text-xs text-muted-foreground">Most recent contribution</p></div></section><section className="mb-6"><CurrencyConverter /></section><div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_minmax(0,1fr)]"><aside id="add-saving" className="space-y-6 xl:sticky xl:top-[96px] xl:self-start"><SavingsTotal totalUSD={totalUSD} isLoaded={savingsLoaded} addSaving={addSaving} /><SavingsForm addSaving={addSaving} disabled={!savingsLoaded || !user} /></aside><div className="min-w-0 space-y-6"><div className="grid grid-cols-1 gap-6 lg:grid-cols-5"><div className="lg:col-span-3"><SavingsPieChart savings={savings} isLoaded={savingsLoaded} /></div><div className="lg:col-span-2"><SavingsSummaryCard savings={savings} isLoaded={savingsLoaded} /></div></div><SavingsChart savings={savings} isLoaded={savingsLoaded} /><SavingsList savings={savings} isLoaded={savingsLoaded} deleteSaving={deleteSaving} /></div></div></main><footer className="border-t border-border/50 px-6 py-8 text-center text-xs text-muted-foreground"><p>Built for financial freedom · JUSU © {new Date().getFullYear()}</p></footer></div></SidebarInset></SidebarProvider>;
 }
