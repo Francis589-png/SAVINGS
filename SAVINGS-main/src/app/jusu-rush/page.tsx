@@ -1,64 +1,118 @@
 'use client';
+
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const TRACK_LENGTH = 5000;
-type Kind = 'coin'|'boost'|'spring'|'slow'|'kill'|'ramp'|'wall'|'gate';
-type Ob = { x:number; z:number; kind:Kind; used:boolean; lane:number };
-type Remote = { x:number; z:number; score:number; finished:boolean };
+type Hazard = 'coin'|'boost'|'spring'|'slow'|'kill'|'ramp'|'hammer'|'gate';
+type Item = { z:number; lane:number; type:Hazard; hit:boolean };
+
+const LENGTH = 5000;
+const LANES = [-1,0,1];
+
+function makeTrack(): Item[] {
+  const out: Item[] = [];
+  for (let i=0;i<115;i++) {
+    const z = 180 + i*42 + (i%5)*10;
+    const lane = LANES[(i*7)%3];
+    const r = i%17;
+    const type: Hazard = r===0?'spring':r===1?'kill':r===2?'slow':r===3||r===10?'boost':r===4||r===11?'ramp':r===5?'hammer':r===6?'gate':'coin';
+    out.push({z,lane,type,hit:false});
+  }
+  return out;
+}
 
 export default function JusuRushPage(){
- const router=useRouter();
- const canvasRef=useRef<HTMLCanvasElement>(null),wsRef=useRef<WebSocket|null>(null),remoteRef=useRef<Remote|null>(null);
- const scoreRef=useRef(0),distanceRef=useRef(0),speedRef=useRef(0),finishedRef=useRef(false),deadRef=useRef(false),boostRef=useRef(0),slowRef=useRef(0),springRef=useRef(0);
- const [roomCode,setRoomCode]=useState(''),[status,setStatus]=useState('Create a race or join your friend'),[score,setScore]=useState(0),[player,setPlayer]=useState<1|2>(1),[countdown,setCountdown]=useState<number|null>(null),[winner,setWinner]=useState<number|null>(null),[started,setStarted]=useState(false);
- useEffect(()=>{scoreRef.current=score},[score]);
- useEffect(()=>{
-  const c=canvasRef.current;if(!c)return;const g=c.getContext('2d');if(!g)return;let raf=0,w=0,h=0,last=performance.now(),lateral=player===1?-.32:.32,target=lateral,roll=0;
-  const keys=new Set<string>();
-  const objects:Ob[]=[];
-  for(let i=0;i<140;i++){
-   const z=180+i*34+(i%4)*8, lane=((i*17)%3)-1, r=i%13;
-   objects.push({x:lane*.43,z,kind:r===0?'spring':r===1?'kill':r===2?'slow':r===3?'boost':r===4?'ramp':r===5?'wall':r===6?'gate':'coin',used:false,lane});
-  }
-  const resize=()=>{const r=c.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);w=r.width;h=r.height;c.width=w*d;c.height=h*d;g.setTransform(d,0,0,d,0,0)};
-  const down=(e:KeyboardEvent)=>keys.add(e.key.toLowerCase()),up=(e:KeyboardEvent)=>keys.delete(e.key.toLowerCase());
-  const touch=(e:TouchEvent)=>{const t=e.touches[0];if(!t)return;target=Math.max(-.78,Math.min(.78,(t.clientX/w-.5)*1.7));e.preventDefault()};
-  const drawBall=(px:number,py:number,r:number,col:string)=>{g.save();g.shadowBlur=22;g.shadowColor=col;const gr=g.createRadialGradient(px-r*.4,py-r*.45,r*.05,px,py,r);gr.addColorStop(0,'#fff');gr.addColorStop(.18,col);gr.addColorStop(1,'#050b16');g.fillStyle=gr;g.beginPath();g.arc(px,py,r,0,Math.PI*2);g.fill();g.restore()};
-  const drawObject=(o:Ob,px:number,y:number,s:number)=>{g.save();g.translate(px,y);g.scale(s,s);if(o.kind==='coin'){g.fillStyle='#ffd43b';g.shadowBlur=18;g.shadowColor='#ffd43b';g.beginPath();g.arc(0,0,10,0,Math.PI*2);g.fill();g.fillStyle='#fff4a3';g.font='bold 9px system-ui';g.textAlign='center';g.fillText('SP',0,3)}
-   else if(o.kind==='spring'){g.strokeStyle='#a855f7';g.lineWidth=5;g.beginPath();for(let i=0;i<4;i++){g.lineTo(i*5-10,(i%2?10:-10))}g.stroke();g.fillStyle='#c084fc';g.fillRect(-16,9,32,5)}
-   else if(o.kind==='slow'){g.fillStyle='#2563eb';g.fillRect(-28,-5,56,10);g.fillStyle='#93c5fd';g.font='bold 9px system-ui';g.textAlign='center';g.fillText('SLOW',0,3)}
-   else if(o.kind==='kill'){g.fillStyle='#ef4444';g.beginPath();g.moveTo(-18,8);g.lineTo(0,-14);g.lineTo(18,8);g.closePath();g.fill();g.fillStyle='#fff';g.font='bold 10px system-ui';g.textAlign='center';g.fillText('!',0,5)}
-   else if(o.kind==='boost'){g.fillStyle='#22d3ee';g.fillRect(-28,-7,56,14);g.fillStyle='#fff';g.font='bold 11px system-ui';g.textAlign='center';g.fillText('BOOST',0,4)}
-   else if(o.kind==='ramp'){g.fillStyle='#f59e0b';g.beginPath();g.moveTo(-28,12);g.lineTo(25,12);g.lineTo(25,-18);g.closePath();g.fill()}
-   else if(o.kind==='wall'){g.fillStyle='#64748b';g.fillRect(-18,-20,36,40);g.strokeStyle='#ef4444';g.lineWidth=3;g.strokeRect(-18,-20,36,40)}
-   else {g.strokeStyle='#facc15';g.lineWidth=7;g.strokeRect(-32,-30,64,60)}g.restore()};
-  const loop=(now:number)=>{const dt=Math.min(.033,(now-last)/1000);last=now;
-   if(started&&!finishedRef.current&&!deadRef.current){
-    const steer=(keys.has('arrowleft')||keys.has('a')?-1:0)+(keys.has('arrowright')||keys.has('d')?1:0);target=Math.max(-.8,Math.min(.8,target+steer*dt*2.8));
-    const input=keys.has('shift')||keys.has(' ');const max=slowRef.current>0?5.0:input||boostRef.current>0?13.5:9.0;
-    speedRef.current += (max-speedRef.current)*Math.min(1,dt*3.8);speedRef.current=Math.max(0,speedRef.current);
-    if(boostRef.current>0)boostRef.current=Math.max(0,boostRef.current-dt);if(slowRef.current>0)slowRef.current=Math.max(0,slowRef.current-dt);
-    if(springRef.current>0){speedRef.current+=18*dt;springRef.current=Math.max(0,springRef.current-dt)}
-    distanceRef.current=Math.min(TRACK_LENGTH,distanceRef.current+speedRef.current*dt*55);lateral+=(target-lateral)*Math.min(1,dt*7);roll+=speedRef.current*dt*5;
-    for(const o of objects){if(o.used)continue;const rel=o.z-distanceRef.current;if(rel<0||rel>65)continue;if(Math.abs(o.x-lateral)<.18){o.used=true;if(o.kind==='coin'){setScore(v=>v+25);scoreRef.current+=25}else if(o.kind==='boost'){boostRef.current=2.2}else if(o.kind==='spring'){springRef.current=1.1;speedRef.current+=10}else if(o.kind==='slow'){slowRef.current=1.8;speedRef.current*=.45}else if(o.kind==='kill'){deadRef.current=true;speedRef.current=0;setStatus('CRASHED — tap restart to race again')}else if(o.kind==='ramp'){springRef.current=.65;speedRef.current+=7}else if(o.kind==='wall'){speedRef.current*=.35;target+=lateral<0?.22:-.22}else if(o.kind==='gate'){speedRef.current+=2}}
-    }
-    if(distanceRef.current>=TRACK_LENGTH){finishedRef.current=true;setWinner(player);setStatus('Finished!')}
-   }
-   g.clearRect(0,0,w,h);
-   const sky=g.createLinearGradient(0,0,0,h);sky.addColorStop(0,'#06152a');sky.addColorStop(.42,'#102d4d');sky.addColorStop(1,'#02040a');g.fillStyle=sky;g.fillRect(0,0,w,h);
-   const horizon=h*.30,roadTop=w*.16,roadBottom=w*1.03;g.fillStyle='#172334';g.beginPath();g.moveTo(w/2-roadTop/2,horizon);g.lineTo(w/2+roadTop/2,horizon);g.lineTo(w/2+roadBottom/2,h);g.lineTo(w/2-roadBottom/2,h);g.closePath();g.fill();
-   for(let i=0;i<20;i++){const rel=((i*260-distanceRef.current)%2200+2200)%2200,p=1-rel/2200;if(p<=0)continue;const y=horizon+p*p*(h-horizon),rw=roadTop+p*(roadBottom-roadTop);g.strokeStyle=i%2?'rgba(34,211,238,.13)':'rgba(255,255,255,.10)';g.beginPath();g.moveTo(w/2-rw/2,y);g.lineTo(w/2+rw/2,y);g.stroke()}
-   const laneWidth=roadBottom/3;
-   objects.forEach(o=>{if(o.used)return;const rel=o.z-distanceRef.current;if(rel<3||rel>1300)return;const p=1-rel/1300,y=horizon+p*p*(h-horizon),rw=roadTop+p*(roadBottom-roadTop),px=w/2+o.x*rw/2;drawObject(o,px,y,.3+p*1.4)});
-   const bx=w/2+lateral*roadBottom*.43,by=h*.79;drawBall(bx,by,Math.max(22,w*.043),player===1?'#38bdf8':'#fb4f72');
-   const rem=remoteRef.current;if(rem){const rz=Math.max(0,Math.min(1300,rem.z-distanceRef.current)),rp=1-rz/1300,ry=horizon+rp*rp*(h-horizon),rw=roadTop+rp*(roadBottom-roadTop),rx=w/2+rem.x*rw/2;drawBall(rx,ry,Math.max(13,w*.028),player===1?'#fb4f72':'#38bdf8')}
-   g.fillStyle='rgba(2,6,23,.72)';g.fillRect(12,12,Math.min(360,w-24),76);g.fillStyle='#fff';g.font='900 16px system-ui';g.fillText(`SPEED ${speedRef.current.toFixed(1)}  •  ${Math.floor(distanceRef.current)}/${TRACK_LENGTH}m`,26,38);g.fillStyle='#facc15';g.fillText(`🪙 ${scoreRef.current} SP`,26,64);
-   if(deadRef.current){g.fillStyle='rgba(0,0,0,.72)';g.fillRect(0,0,w,h);g.fillStyle='#ff4d4d';g.textAlign='center';g.font='900 46px system-ui';g.fillText('CRASH!',w/2,h/2-20);g.fillStyle='#fff';g.font='700 18px system-ui';g.fillText('Hit RESTART to get back on the track',w/2,h/2+20);g.textAlign='left'}
-   if(winner){g.fillStyle='rgba(0,0,0,.75)';g.fillRect(0,0,w,h);g.textAlign='center';g.fillStyle='#fff';g.font='900 48px system-ui';g.fillText(winner===player?'🏆 YOU WIN':'YOU LOSE',w/2,h/2-20);g.font='700 20px system-ui';g.fillStyle='#facc15';g.fillText(`${scoreRef.current} SP  •  ${Math.floor(distanceRef.current)}m`,w/2,h/2+25);g.textAlign='left'}
-   raf=requestAnimationFrame(loop)};resize();addEventListener('resize',resize);addEventListener('keydown',down);addEventListener('keyup',up);c.addEventListener('touchmove',touch,{passive:false});c.addEventListener('touchstart',touch,{passive:false});raf=requestAnimationFrame(loop);
-   return()=>{cancelAnimationFrame(raf);removeEventListener('resize',resize);removeEventListener('keydown',down);removeEventListener('keyup',up);c.removeEventListener('touchmove',touch);c.removeEventListener('touchstart',touch)}} ,[player,started,winner]);
- const connect=(code:string,p:1|2)=>{setRoomCode(code.toUpperCase());setPlayer(p);setStatus('Connecting…');const endpoint=process.env.NEXT_PUBLIC_JUSU_RUSH_WS_URL;if(!endpoint){setStatus('Local race ready — multiplayer server URL is not configured');setStarted(true);setCountdown(0);return}const ws=new WebSocket(endpoint);wsRef.current=ws;ws.onopen=()=>{setStatus(`Room ${code.toUpperCase()} connected`);ws.send(JSON.stringify({type:'join',room:code.toUpperCase(),player:p}))};ws.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.type==='state'){const other=m.players?.find((v:any)=>v.player!==p);if(other)remoteRef.current=other;if(m.players?.length===2&&!started){setCountdown(3);setStatus('Both racers ready');let n=3;const timer=setInterval(()=>{n--;if(n<=0){clearInterval(timer);setCountdown(0);setStarted(true)}else setCountdown(n)},1000)}}}catch{}};ws.onclose=()=>setStatus('Disconnected');ws.onerror=()=>setStatus('Unable to connect')};
- const create=()=>connect(Math.random().toString(36).slice(2,8).toUpperCase(),1);const join=()=>connect(roomCode,2);const restart=()=>{distanceRef.current=0;speedRef.current=0;scoreRef.current=0;setScore(0);deadRef.current=false;finishedRef.current=false;setWinner(null);setStarted(true);setStatus('RACE!');setCountdown(0)};
- return <main className="min-h-screen bg-[#02060d] text-white"><section className="mx-auto flex min-h-screen max-w-[1500px] flex-col px-3 py-3 sm:px-5"><header className="mb-3 flex items-center justify-between rounded-2xl border border-white/10 bg-white/[.04] px-4 py-3"><button onClick={()=>router.push('/')} className="text-sm font-bold text-slate-400">← Savings</button><div className="text-center"><p className="text-[10px] font-black tracking-[.4em] text-cyan-400">JUSU</p><h1 className="text-3xl font-black tracking-tight">RUSH</h1></div><div className="text-right"><p className="text-[10px] text-slate-500">RACE</p><p className="font-black text-yellow-300">{score} SP</p></div></header><div className="grid flex-1 gap-3 lg:grid-cols-[250px_1fr]"><aside className="order-2 rounded-2xl border border-white/10 bg-[#09111e] p-4 lg:order-1"><p className="text-xs font-black tracking-widest text-cyan-400">RACE CONTROL</p><p className="mt-2 text-sm text-slate-400">Fast rolling • hazards • ramps • springs • boosts</p><button onClick={create} className="mt-4 w-full rounded-xl bg-cyan-400 py-3 font-black text-slate-950">CREATE RACE</button><input value={roomCode} onChange={e=>setRoomCode(e.target.value.toUpperCase().slice(0,6))} placeholder="ROOM CODE" className="mt-3 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-center font-black tracking-[.3em]"/><button disabled={roomCode.length<4} onClick={join} className="mt-2 w-full rounded-xl border border-white/10 bg-white/10 py-3 font-bold disabled:opacity-40">JOIN FRIEND</button><div className="mt-4 rounded-xl bg-black/30 p-3 text-xs"><b>{status}</b><p className="mt-1 text-slate-500">Player {player} • 2-player WebSocket race</p></div><div className="mt-4 grid grid-cols-2 gap-2 text-[10px] font-bold"><span className="rounded-lg bg-yellow-400/10 p-2 text-yellow-300">🪙 COIN</span><span className="rounded-lg bg-cyan-400/10 p-2 text-cyan-300">⚡ BOOST</span><span className="rounded-lg bg-purple-400/10 p-2 text-purple-300">🌀 SPRING</span><span className="rounded-lg bg-blue-400/10 p-2 text-blue-300">❄ SLOW</span><span className="rounded-lg bg-red-400/10 p-2 text-red-300">☠ KILL</span><span className="rounded-lg bg-orange-400/10 p-2 text-orange-300">↗ RAMP</span></div>{(deadRef.current||winner!==null)&&<button onClick={restart} className="mt-4 w-full rounded-xl bg-white py-3 font-black text-black">RESTART</button>}</aside><div className="relative min-h-[76vh] overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl"><canvas ref={canvasRef} className="h-full min-h-[76vh] w-full touch-none"/>{countdown!==null&&countdown>0&&<div className="pointer-events-none absolute inset-0 grid place-items-center"><span className="text-8xl font-black text-white drop-shadow-2xl">{countdown}</span></div>}{!started&&countdown===null&&<div className="absolute inset-0 grid place-items-center bg-black/30"><div className="rounded-3xl border border-white/10 bg-[#09111e]/95 p-7 text-center shadow-2xl"><p className="text-xs font-black tracking-[.3em] text-cyan-400">READY TO RACE?</p><h2 className="mt-2 text-4xl font-black">ROLL TO WIN</h2><p className="mt-2 max-w-sm text-sm text-slate-400">Swipe left/right. Hit boosts and springs. Avoid kill hazards and slow zones. First to the finish wins.</p><button onClick={create} className="mt-5 rounded-xl bg-cyan-400 px-8 py-3 font-black text-slate-950">START RACE</button></div></div>}</div></div></section></main>;
+  const router=useRouter();
+  const canvas=useRef<HTMLCanvasElement>(null);
+  const ws=useRef<WebSocket|null>(null);
+  const remote=useRef<{z:number;lane:number;score:number}|null>(null);
+  const [room,setRoom]=useState('');
+  const [status,setStatus]=useState('CREATE A RACE OR JOIN YOUR FRIEND');
+  const [started,setStarted]=useState(false);
+  const [count,setCount]=useState<number|null>(null);
+  const [score,setScore]=useState(0);
+  const [dead,setDead]=useState(false);
+  const [finished,setFinished]=useState(false);
+  const [winner,setWinner]=useState(false);
+  const [player,setPlayer]=useState<1|2>(1);
+  const scoreRef=useRef(0);
+  const state=useRef({z:0,lane:0,target:0,speed:0,boost:0,slow:0,spring:0});
+
+  useEffect(()=>{scoreRef.current=score},[score]);
+
+  useEffect(()=>{
+    const c=canvas.current;if(!c)return;
+    const g=c.getContext('2d');if(!g)return;
+    const track=makeTrack(); let raf=0,last=performance.now(),w=0,h=0;
+    const keys=new Set<string>();
+    const resize=()=>{const r=c.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);w=r.width;h=r.height;c.width=w*d;c.height=h*d;g.setTransform(d,0,0,d,0,0)};
+    const down=(e:KeyboardEvent)=>keys.add(e.key.toLowerCase());
+    const up=(e:KeyboardEvent)=>keys.delete(e.key.toLowerCase());
+    const steerTouch=(e:TouchEvent)=>{const t=e.touches[0];if(!t)return;state.current.target=Math.max(-1,Math.min(1,Math.round((t.clientX/w-.5)*3)));e.preventDefault()};
+    const poly=(pts:number[])=>{g.beginPath();g.moveTo(pts[0],pts[1]);for(let i=2;i<pts.length;i+=2)g.lineTo(pts[i],pts[i+1]);g.closePath()};
+    const ball=(x:number,y:number,r:number,col:string)=>{g.save();g.shadowBlur=25;g.shadowColor=col;const gr=g.createRadialGradient(x-r*.45,y-r*.5,2,x,y,r);gr.addColorStop(0,'#fff');gr.addColorStop(.2,col);gr.addColorStop(1,'#06101d');g.fillStyle=gr;g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fill();g.restore()};
+    const item=(it:Item,x:number,y:number,s:number)=>{g.save();g.translate(x,y);g.scale(s,s);g.textAlign='center';g.font='900 10px system-ui';
+      if(it.type==='coin'){g.fillStyle='#ffd43b';g.shadowBlur=18;g.shadowColor='#ffd43b';g.beginPath();g.arc(0,0,11,0,Math.PI*2);g.fill();g.fillStyle='#6b4b00';g.fillText('S',0,4)}
+      if(it.type==='boost'){g.fillStyle='#22d3ee';g.fillRect(-30,-7,60,14);g.fillStyle='#06212b';g.fillText('BOOST',0,4)}
+      if(it.type==='spring'){g.strokeStyle='#c084fc';g.lineWidth=5;g.beginPath();for(let j=0;j<5;j++)g.lineTo(j*7-14,j%2?9:-9);g.stroke();g.fillStyle='#a855f7';g.fillRect(-17,9,34,5)}
+      if(it.type==='slow'){g.fillStyle='#2563eb';g.fillRect(-30,-8,60,16);g.fillStyle='#dbeafe';g.fillText('SLOW',0,4)}
+      if(it.type==='kill'){g.fillStyle='#ef4444';poly([-20,12,0,-18,20,12]);g.fill();g.fillStyle='#fff';g.fillText('!',0,6)}
+      if(it.type==='ramp'){g.fillStyle='#f59e0b';poly([-30,14,30,14,30,-20]);g.fill();g.fillStyle='#fff';g.fillText('RUSH',5,4)}
+      if(it.type==='hammer'){g.fillStyle='#94a3b8';g.fillRect(-4,-32,8,45);g.fillStyle='#ef4444';g.fillRect(-24,-35,48,12)}
+      if(it.type==='gate'){g.strokeStyle='#facc15';g.lineWidth=7;g.strokeRect(-34,-32,68,64)}
+      g.restore()};
+    const draw=(now:number)=>{
+      const dt=Math.min(.033,(now-last)/1000);last=now;const s=state.current;
+      if(started&&!dead&&!finished){
+        let dir=(keys.has('arrowleft')||keys.has('a')?-1:0)+(keys.has('arrowright')||keys.has('d')?1:0);
+        if(dir)s.target=Math.max(-1,Math.min(1,s.target+dir*dt*3));
+        const boosting=keys.has('shift')||keys.has(' ' )||s.boost>0;
+        const max=s.slow>0?5.5:boosting?15:10;
+        s.speed+=(max-s.speed)*Math.min(1,dt*4.5);
+        if(s.boost>0)s.boost=Math.max(0,s.boost-dt);if(s.slow>0)s.slow=Math.max(0,s.slow-dt);if(s.spring>0){s.speed+=22*dt;s.spring-=dt}
+        s.lane+=(s.target-s.lane)*Math.min(1,dt*8);s.z=Math.min(LENGTH,s.z+s.speed*dt*55);
+        for(const it of track){if(it.hit)continue;const dz=it.z-s.z;if(dz<0||dz>42||Math.abs(it.lane-s.lane)>.35)continue;it.hit=true;
+          if(it.type==='coin')setScore(v=>v+25); if(it.type==='boost')s.boost=2.5; if(it.type==='spring'){s.spring=1;s.speed+=12} if(it.type==='slow'){s.slow=2;s.speed*=.45} if(it.type==='kill'){s.speed=0;setDead(true);setStatus('CRASHED — RESTART TO RACE')} if(it.type==='ramp'){s.spring=.8;s.speed+=8} if(it.type==='hammer')s.speed*=.25; if(it.type==='gate')s.speed+=3;
+        }
+        if(s.z>=LENGTH){setFinished(true);setWinner(true);setStatus('FINISH LINE — YOU WIN')}
+        if(ws.current?.readyState===1)ws.current.send(JSON.stringify({type:'state',room,player,z:s.z,lane:s.lane,score:scoreRef.current,finished:s.z>=LENGTH}));
+      }
+      g.clearRect(0,0,w,h);
+      const sky=g.createLinearGradient(0,0,0,h);sky.addColorStop(0,'#061a32');sky.addColorStop(.5,'#0b3652');sky.addColorStop(1,'#03070d');g.fillStyle=sky;g.fillRect(0,0,w,h);
+      const hz=h*.27, top=w*.12, bot=w*1.08;
+      g.fillStyle='#1a2635';poly([w/2-top/2,hz,w/2+top/2,hz,w/2+bot/2,h,w/2-bot/2,h]);g.fill();
+      for(let lane=-1;lane<=1;lane++){g.strokeStyle='rgba(255,255,255,.22)';g.setLineDash([16,18]);g.lineWidth=2;g.beginPath();g.moveTo(w/2+lane*top/6,hz);g.lineTo(w/2+lane*bot/6,h);g.stroke();g.setLineDash([])}
+      for(let i=0;i<24;i++){const d=((i*220-s.z)%1800+1800)%1800,p=1-d/1800,y=hz+p*p*(h-hz),rw=top+p*(bot-top);g.strokeStyle=i%2?'rgba(34,211,238,.16)':'rgba(255,255,255,.09)';g.beginPath();g.moveTo(w/2-rw/2,y);g.lineTo(w/2+rw/2,y);g.stroke()}
+      for(const it of track){const dz=it.z-s.z;if(it.hit||dz<5||dz>1250)continue;const p=1-dz/1250,y=hz+p*p*(h-hz),rw=top+p*(bot-top),x=w/2+it.lane*rw/6;item(it,x,y,.35+p*1.5)}
+      const px=w/2+s.lane*bot/6,py=h*.78;ball(px,py,Math.max(22,w*.04),player===1?'#38bdf8':'#fb4f72');
+      if(remote.current){const dz=Math.max(0,Math.min(1250,remote.current.z-s.z)),p=1-dz/1250,y=hz+p*p*(h-hz),rw=top+p*(bot-top),x=w/2+remote.current.lane*rw/6;ball(x,y,Math.max(13,w*.025),player===1?'#fb4f72':'#38bdf8')}
+      g.fillStyle='rgba(1,7,17,.8)';g.fillRect(14,14,Math.min(390,w-28),86);g.fillStyle='#fff';g.font='900 16px system-ui';g.fillText(`RUSH  ${Math.floor(s.z).toString().padStart(4,'0')} / ${LENGTH}m`,28,40);g.fillStyle='#22d3ee';g.fillText(`SPEED ${s.speed.toFixed(1)}x`,28,66);g.fillStyle='#facc15';g.fillText(`🪙 ${scoreRef.current} SP`,180,66);
+      if(s.z>0){g.fillStyle='rgba(255,255,255,.12)';g.fillRect(28,80,Math.min(350,w-56),5);g.fillStyle='#22d3ee';g.fillRect(28,80,Math.min(350,w-56)*s.z/LENGTH,5)}
+      if(count!==null&&count>0){g.fillStyle='rgba(0,0,0,.45)';g.fillRect(0,0,w,h);g.fillStyle='#fff';g.textAlign='center';g.font='100 100px system-ui';g.fillText(String(count),w/2,h*.52);g.textAlign='left'}
+      if(dead||finished){g.fillStyle='rgba(0,0,0,.72)';g.fillRect(0,0,w,h);g.textAlign='center';g.fillStyle=dead?'#ef4444':'#facc15';g.font='900 52px system-ui';g.fillText(dead?'CRASH!':'🏁 YOU WIN',w/2,h*.46);g.fillStyle='#fff';g.font='700 20px system-ui';g.fillText(dead?'The track got you.':'First across the finish line.',w/2,h*.54);g.textAlign='left'}
+      raf=requestAnimationFrame(draw);
+    };
+    resize();addEventListener('resize',resize);addEventListener('keydown',down);addEventListener('keyup',up);c.addEventListener('touchmove',steerTouch,{passive:false});c.addEventListener('touchstart',steerTouch,{passive:false});raf=requestAnimationFrame(draw);
+    return()=>{cancelAnimationFrame(raf);removeEventListener('resize',resize);removeEventListener('keydown',down);c.removeEventListener('touchmove',steerTouch);c.removeEventListener('touchstart',steerTouch);if(ws.current)ws.current.close()};
+  },[started,dead,finished,count,player,room]);
+
+  const race=(p:1|2,code:string)=>{
+    setPlayer(p);setRoom(code);setStatus('CONNECTING…');
+    const url=process.env.NEXT_PUBLIC_JUSU_RUSH_WS_URL;
+    if(!url){setStatus('LOCAL PRACTICE RACE');startCountdown();return}
+    const socket=new WebSocket(url);ws.current=socket;
+    socket.onopen=()=>{setStatus(`ROOM ${code} • WAITING FOR RACER`);socket.send(JSON.stringify({type:'join',room:code,player:p}))};
+    socket.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.type==='state'){const other=m.players?.find((x:any)=>x.player!==p);if(other)remote.current=other;if(m.players?.length===2){startCountdown()}}}catch{}};
+    socket.onerror=()=>setStatus('SERVER CONNECTION FAILED');socket.onclose=()=>setStatus('DISCONNECTED');
+  };
+  const startCountdown=()=>{if(started)return;setCount(3);let n=3;const t=setInterval(()=>{n--;if(n<=0){clearInterval(t);setCount(null);setStarted(true);setStatus('RUSH!')}else setCount(n)},700)};
+  const create=()=>race(1,Math.random().toString(36).slice(2,8).toUpperCase());
+  const join=()=>{if(room.length>=4)race(2,room)};
+  const restart=()=>{window.location.reload()};
+
+  return <main className="min-h-screen bg-[#02060d] text-white"><div className="mx-auto flex min-h-screen max-w-[1500px] flex-col p-3 sm:p-5">
+    <header className="mb-3 flex items-center justify-between rounded-2xl border border-white/10 bg-white/[.04] px-4 py-3"><button onClick={()=>router.push('/')} className="font-bold text-slate-400">← Savings</button><div className="text-center"><p className="text-[10px] font-black tracking-[.5em] text-cyan-400">JUSU</p><h1 className="text-3xl font-black">RUSH</h1></div><div className="text-right"><p className="text-[10px] text-slate-500">PLAYER {player}</p><b className="text-yellow-300">{score} SP</b></div></header>
+    <div className="grid flex-1 gap-3 lg:grid-cols-[250px_1fr]"><aside className="order-2 rounded-2xl border border-white/10 bg-[#09111e] p-4 lg:order-1"><p className="text-xs font-black tracking-[.2em] text-cyan-400">RACE GARAGE</p><h2 className="mt-2 text-xl font-black">2-PLAYER RUSH</h2><p className="mt-1 text-xs leading-5 text-slate-500">Roll, boost, jump, dodge and beat your friend to the finish.</p><button onClick={create} className="mt-4 w-full rounded-xl bg-cyan-400 py-3 font-black text-slate-950">CREATE RACE</button><input value={room} onChange={e=>setRoom(e.target.value.toUpperCase().slice(0,6))} placeholder="ROOM CODE" className="mt-3 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-center font-black tracking-[.35em]"/><button onClick={join} disabled={room.length<4} className="mt-2 w-full rounded-xl border border-white/10 bg-white/10 py-3 font-bold disabled:opacity-30">JOIN FRIEND</button><div className="mt-4 rounded-xl bg-black/30 p-3"><p className="text-[10px] text-slate-500">STATUS</p><p className="mt-1 text-xs font-bold">{status}</p></div><div className="mt-4 grid grid-cols-2 gap-2 text-[10px] font-black"><span className="rounded-lg bg-yellow-400/10 p-2 text-yellow-300">🪙 COINS</span><span className="rounded-lg bg-cyan-400/10 p-2 text-cyan-300">⚡ BOOST</span><span className="rounded-lg bg-purple-400/10 p-2 text-purple-300">🌀 SPRING</span><span className="rounded-lg bg-blue-400/10 p-2 text-blue-300">❄ SLOW</span><span className="rounded-lg bg-red-400/10 p-2 text-red-300">☠ KILL</span><span className="rounded-lg bg-orange-400/10 p-2 text-orange-300">↗ RAMP</span><span className="rounded-lg bg-slate-400/10 p-2 text-slate-300">🔨 HAMMER</span><span className="rounded-lg bg-yellow-400/10 p-2 text-yellow-300">▣ GATE</span></div><p className="mt-4 text-[10px] leading-4 text-slate-600">Controls: swipe left/right or A/D. Hold BOOST on keyboard with Space/Shift.</p>{(dead||finished)&&<button onClick={restart} className="mt-4 w-full rounded-xl bg-white py-3 font-black text-black">REMATCH</button>}</aside>
+      <div className="relative min-h-[76vh] overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl"><canvas ref={canvas} className="h-full min-h-[76vh] w-full touch-none"/><div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/50 px-4 py-2 text-[10px] font-black tracking-widest text-slate-400 backdrop-blur">SWIPE TO STEER • FIRST TO 5000M WINS</div></div></div>
+  </div></main>;
 }
