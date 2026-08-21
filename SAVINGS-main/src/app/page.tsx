@@ -13,10 +13,10 @@ import { CurrencyConverter } from "@/components/currency-converter";
 import { useUser, useAuth } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { LogOut, User as UserIcon, LayoutDashboard, Plus, Sparkles, Wallet, TrendingUp, PiggyBank, Gamepad2, Trophy, Zap } from "lucide-react";
+import { LogOut, User as UserIcon, LayoutDashboard, Plus, Sparkles, Wallet, Gamepad2, Trophy, Zap } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarButton, SidebarFooter, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { SavingsSummaryCard } from "@/components/savings-summary-card";
 
 export default function Home() {
@@ -24,7 +24,6 @@ export default function Home() {
   const auth = useAuth();
   const router = useRouter();
   const { savings, addSaving, totalUSD, isLoaded: savingsLoaded, deleteSaving } = useSavings();
-
   useEffect(() => { if (!user && !isUserLoading) router.push("/login"); }, [user, isUserLoading, router]);
   const handleLogout = () => auth.signOut();
   const getInitials = (email?: string | null) => email?.charAt(0).toUpperCase() ?? "?";
@@ -40,8 +39,8 @@ export default function Home() {
         <SidebarContent className="px-3 py-5">
           <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Workspace</p>
           <SidebarMenu>
-            <SidebarMenuItem><SidebarButton className="h-11 rounded-xl font-medium"><LayoutDashboard />Dashboard</SidebarButton></SidebarMenuItem>
-            <SidebarMenuItem><SidebarButton className="h-11 rounded-xl font-medium" onClick={() => document.getElementById("jusu-rush")?.scrollIntoView({ behavior: "smooth" })}><Gamepad2 />JUSU RUSH</SidebarButton></SidebarMenuItem>
+            <SidebarMenuItem><SidebarMenuButton className="h-11 rounded-xl font-medium"><LayoutDashboard />Dashboard</SidebarMenuButton></SidebarMenuItem>
+            <SidebarMenuItem><SidebarMenuButton className="h-11 rounded-xl font-medium" onClick={() => document.getElementById("jusu-rush")?.scrollIntoView({ behavior: "smooth" })}><Gamepad2 />JUSU RUSH</SidebarMenuButton></SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter className="border-t border-border/50 p-4"><div className="rounded-2xl bg-primary/[0.07] p-4"><div className="mb-2 flex items-center gap-2 text-primary"><Sparkles className="h-4 w-4" /><span className="text-xs font-semibold">Stay on track</span></div><p className="text-xs leading-5 text-muted-foreground">Small, consistent deposits can turn into meaningful savings.</p></div></SidebarFooter>
