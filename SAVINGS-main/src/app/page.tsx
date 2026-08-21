@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect } from "react";
@@ -12,7 +11,7 @@ import { Logo } from "@/components/logo";
 import { useUser, useAuth } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { LogOut, User as UserIcon, LayoutDashboard } from "lucide-react";
+import { LogOut, User as UserIcon, LayoutDashboard, Plus, Sparkles } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -22,8 +21,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
-  SidebarProvider, 
+import {
+  SidebarProvider,
   Sidebar,
   SidebarHeader,
   SidebarContent,
@@ -43,26 +42,21 @@ export default function Home() {
   const { savings, addSaving, totalUSD, isLoaded: savingsLoaded, deleteSaving } = useSavings();
 
   useEffect(() => {
-    if (!user && !isUserLoading) {
-      router.push("/login");
-    }
+    if (!user && !isUserLoading) router.push("/login");
   }, [user, isUserLoading, router]);
 
-  const handleLogout = () => {
-    auth.signOut();
-  };
-  
-  const getInitials = (email?: string | null) => {
-    if (!email) return "?";
-    return email.charAt(0).toUpperCase();
-  };
+  const handleLogout = () => auth.signOut();
+  const getInitials = (email?: string | null) => email?.charAt(0).toUpperCase() ?? "?";
 
   if (isUserLoading || !user) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="flex flex-col items-center gap-4">
+      <div className="flex min-h-screen items-center justify-center bg-background px-6">
+        <div className="flex flex-col items-center gap-4 text-center animate-fade-in-up">
           <Logo />
-          <p className="text-muted-foreground">Loading your financial dashboard...</p>
+          <div className="h-1 w-16 overflow-hidden rounded-full bg-muted">
+            <div className="h-full w-2/3 animate-pulse rounded-full bg-primary" />
+          </div>
+          <p className="text-sm text-muted-foreground">Preparing your financial dashboard…</p>
         </div>
       </div>
     );
@@ -70,81 +64,94 @@ export default function Home() {
 
   return (
     <SidebarProvider>
-      <Sidebar>
-        <SidebarHeader>
+      <Sidebar className="border-r border-border/60 bg-card/70 backdrop-blur-xl">
+        <SidebarHeader className="border-b border-border/50 p-5">
           <Logo />
         </SidebarHeader>
-        <SidebarContent>
+        <SidebarContent className="px-3 py-5">
+          <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Workspace</p>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton isActive>
+              <SidebarMenuButton isActive className="h-11 rounded-xl font-medium">
                 <LayoutDashboard />
                 Dashboard
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter>
-          {/* Can add footer items here later */}
+        <SidebarFooter className="border-t border-border/50 p-4">
+          <div className="rounded-2xl bg-primary/[0.07] p-4">
+            <div className="mb-2 flex items-center gap-2 text-primary"><Sparkles className="h-4 w-4" /><span className="text-xs font-semibold">Stay on track</span></div>
+            <p className="text-xs leading-5 text-muted-foreground">Small, consistent deposits can turn into meaningful savings.</p>
+          </div>
         </SidebarFooter>
       </Sidebar>
+
       <SidebarInset>
-        <div className="flex flex-col min-h-screen bg-background text-foreground font-body">
-          <header className="p-4 border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-            <div className="container mx-auto flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <div className="md:hidden">
-                  <SidebarTrigger />
-                </div>
-                <div className="hidden md:block">
-                  <h1 className="text-2xl font-bold text-primary">Dashboard</h1>
+        <div className="min-h-screen bg-background text-foreground">
+          <header className="sticky top-0 z-30 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+            <div className="mx-auto flex h-[72px] max-w-[1600px] items-center justify-between px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center gap-3">
+                <SidebarTrigger className="rounded-xl md:hidden" />
+                <div>
+                  <p className="hidden text-xs font-medium text-muted-foreground sm:block">Your money, organized</p>
+                  <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Dashboard</h1>
                 </div>
               </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={user.photoURL ?? ''} alt={user.email ?? ''} />
-                        <AvatarFallback>
-                          {user.isAnonymous ? <UserIcon className="h-5 w-5" /> : getInitials(user.email)}
-                        </AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56" align="end" forceMount>
-                    <DropdownMenuLabel className="font-normal">
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">My Account</p>
-                        <p className="text-xs leading-none text-muted-foreground">
-                          {user.isAnonymous ? "Anonymous User" : user.email}
-                        </p>
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log out</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-10 w-10 rounded-full p-0 ring-offset-background transition hover:ring-2 hover:ring-primary/20">
+                    <Avatar className="h-10 w-10 border border-border/60">
+                      <AvatarImage src={user.photoURL ?? ""} alt={user.email ?? "Account"} />
+                      <AvatarFallback className="bg-primary/10 font-semibold text-primary">
+                        {user.isAnonymous ? <UserIcon className="h-5 w-5" /> : getInitials(user.email)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-60 rounded-2xl p-2" align="end" forceMount>
+                  <DropdownMenuLabel className="px-3 py-2 font-normal">
+                    <p className="text-sm font-semibold">My Account</p>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">{user.isAnonymous ? "Anonymous User" : user.email}</p>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="rounded-xl">
+                    <LogOut className="mr-2 h-4 w-4" /> Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </header>
 
-          <main className="flex-grow container mx-auto p-4 md:p-6 lg:p-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
-              <div className="lg:col-span-1 xl:col-span-1 flex flex-col gap-6 lg:gap-8">
+          <main className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+            <section className="mb-7 overflow-hidden rounded-[28px] border border-primary/10 bg-gradient-to-br from-primary/[0.13] via-card to-card p-6 shadow-sm sm:p-8">
+              <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
+                <div className="max-w-2xl">
+                  <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-background/70 px-3 py-1.5 text-xs font-semibold text-primary backdrop-blur">
+                    <Sparkles className="h-3.5 w-3.5" /> Financial overview
+                  </div>
+                  <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Build your savings, one step at a time.</h2>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">Track contributions, understand your progress, and keep your financial goals visible.</p>
+                </div>
+                <div className="shrink-0">
+                  <Button className="h-11 rounded-xl px-5 shadow-lg shadow-primary/15" onClick={() => document.getElementById("add-saving")?.scrollIntoView({ behavior: "smooth" })}>
+                    <Plus className="mr-2 h-4 w-4" /> Add savings
+                  </Button>
+                </div>
+              </div>
+            </section>
+
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+              <aside id="add-saving" className="space-y-6 xl:sticky xl:top-[96px] xl:self-start">
                 <SavingsTotal totalUSD={totalUSD} isLoaded={savingsLoaded} addSaving={addSaving} />
                 <SavingsForm addSaving={addSaving} disabled={!savingsLoaded || !user} />
-              </div>
+              </aside>
 
-              <div className="lg:col-span-2 xl:col-span-3 flex flex-col gap-6 lg:gap-8">
-                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
-                  <div className="xl:col-span-2">
-                    <SavingsPieChart savings={savings} isLoaded={savingsLoaded} />
-                  </div>
-                  <div className="md:col-span-2 xl:col-span-1">
-                    <SavingsSummaryCard savings={savings} isLoaded={savingsLoaded} />
-                  </div>
+              <div className="min-w-0 space-y-6">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+                  <div className="lg:col-span-3"><SavingsPieChart savings={savings} isLoaded={savingsLoaded} /></div>
+                  <div className="lg:col-span-2"><SavingsSummaryCard savings={savings} isLoaded={savingsLoaded} /></div>
                 </div>
                 <SavingsChart savings={savings} isLoaded={savingsLoaded} />
                 <SavingsList savings={savings} isLoaded={savingsLoaded} deleteSaving={deleteSaving} />
@@ -152,8 +159,8 @@ export default function Home() {
             </div>
           </main>
 
-          <footer className="text-center p-4 text-sm text-muted-foreground border-t mt-8">
-            <p>Built for financial freedom. &copy; {new Date().getFullYear()} CurrencyTrack.</p>
+          <footer className="border-t border-border/50 px-6 py-8 text-center text-xs text-muted-foreground">
+            <p>Built for financial freedom · CurrencyTrack © {new Date().getFullYear()}</p>
           </footer>
         </div>
       </SidebarInset>
