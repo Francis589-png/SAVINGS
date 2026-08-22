@@ -12,8 +12,9 @@ import { JusuLoader } from "@/components/jusu-loader";
 import { CurrencyConverter } from "@/components/currency-converter";
 import { useUser, useAuth } from "@/firebase";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { LogOut, User as UserIcon, LayoutDashboard, Plus, Sparkles, Wallet, Gamepad2, Trophy, Zap } from "lucide-react";
+import { LogOut, User as UserIcon, Plus, Sparkles, Wallet, Gamepad2, Trophy, Zap, Target, BarChart3, History } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SavingsSummaryCard } from "@/components/savings-summary-card";
@@ -23,98 +24,20 @@ export default function Home() {
   const auth = useAuth();
   const router = useRouter();
   const { savings, addSaving, totalUSD, isLoaded: savingsLoaded, deleteSaving } = useSavings();
-
-  useEffect(() => {
-    if (!user && !isUserLoading) router.push("/login");
-  }, [user, isUserLoading, router]);
-
+  useEffect(() => { if (!user && !isUserLoading) router.push("/login"); }, [user, isUserLoading, router]);
   const handleLogout = () => auth.signOut();
   const getInitials = (email?: string | null) => email?.charAt(0).toUpperCase() ?? "?";
   const contributionCount = savings.length;
   const averageContribution = contributionCount > 0 ? totalUSD / contributionCount : 0;
-  const latestContribution = savings.length > 0
-    ? [...savings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
-    : null;
-
+  const latestContribution = savings.length > 0 ? [...savings].sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime())[0] : null;
   if (isUserLoading || !user) return <JusuLoader />;
-
-  return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-30 border-b border-border/50 bg-background/90 backdrop-blur-xl">
-        <div className="mx-auto flex min-h-[72px] max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-5">
-            <Logo />
-            <nav className="hidden items-center gap-1 md:flex">
-              <Button variant="ghost" className="rounded-xl font-medium"><LayoutDashboard className="mr-2 h-4 w-4" />Dashboard</Button>
-              <Button variant="ghost" className="rounded-xl font-medium" onClick={() => document.getElementById("jusu-rush")?.scrollIntoView({ behavior: "smooth" })}><Gamepad2 className="mr-2 h-4 w-4" />JUSU RUSH</Button>
-            </nav>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-10 w-10 rounded-full p-0">
-                <Avatar className="h-10 w-10 border border-border/60">
-                  <AvatarImage src={user.photoURL ?? ""} alt={user.email ?? "Account"} />
-                  <AvatarFallback className="bg-primary/10 font-semibold text-primary">{user.isAnonymous ? <UserIcon className="h-5 w-5" /> : getInitials(user.email)}</AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-60 rounded-2xl p-2" align="end">
-              <DropdownMenuLabel className="px-3 py-2 font-normal"><p className="text-sm font-semibold">My Account</p><p className="mt-1 truncate text-xs text-muted-foreground">{user.isAnonymous ? "Anonymous User" : user.email}</p></DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="rounded-xl"><LogOut className="mr-2 h-4 w-4" />Log out</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <section className="mb-7 overflow-hidden rounded-[28px] border border-primary/10 bg-gradient-to-br from-primary/[0.13] via-card to-card p-6 shadow-sm sm:p-8">
-          <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
-            <div className="max-w-2xl">
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-background/70 px-3 py-1.5 text-xs font-semibold text-primary backdrop-blur"><Sparkles className="h-3.5 w-3.5" />Financial overview</div>
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Build your savings, one step at a time.</h1>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">Track contributions, understand your progress, and keep your financial goals visible.</p>
-            </div>
-            <Button className="h-11 rounded-xl px-5 shadow-lg shadow-primary/15" onClick={() => document.getElementById("add-saving")?.scrollIntoView({ behavior: "smooth" })}><Plus className="mr-2 h-4 w-4" />Add savings</Button>
-          </div>
-        </section>
-
-        <section id="jusu-rush" className="mb-7 overflow-hidden rounded-[28px] border border-cyan-400/20 bg-gradient-to-br from-cyan-500/[0.13] via-card to-card p-6 shadow-sm sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-2xl">
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-bold text-cyan-500"><Gamepad2 className="h-3.5 w-3.5" />NEW · 2-PLAYER GAME</div>
-              <h2 className="text-3xl font-black tracking-tight sm:text-4xl">JUSU RUSH</h2>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">Race a friend on another phone, collect virtual coins, grab boosts, and rush to the finish.</p>
-              <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-muted-foreground">
-                <span className="rounded-full bg-muted px-3 py-1.5"><Trophy className="mr-1 inline h-3.5 w-3.5" />Race to win</span>
-                <span className="rounded-full bg-muted px-3 py-1.5"><Zap className="mr-1 inline h-3.5 w-3.5" />Boost & rush</span>
-                <span className="rounded-full bg-muted px-3 py-1.5"><Wallet className="mr-1 inline h-3.5 w-3.5" />Collect value</span>
-              </div>
-            </div>
-            <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
-              <Button size="lg" className="h-12 rounded-xl bg-cyan-500 px-7 font-black text-slate-950 hover:bg-cyan-400" onClick={() => router.push("/jusu-rush")}><Gamepad2 className="mr-2 h-5 w-5" />PLAY JUSU RUSH</Button>
-              <Button size="lg" variant="outline" className="h-12 rounded-xl" onClick={() => router.push("/jusu-rush")}>2 Players →</Button>
-            </div>
-          </div>
-        </section>
-
-        <section className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm"><span className="text-sm font-medium text-muted-foreground">Contributions</span><p className="mt-4 text-2xl font-bold tracking-tight">{savingsLoaded ? contributionCount : "—"}</p></div>
-          <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm"><span className="text-sm font-medium text-muted-foreground">Average deposit</span><p className="mt-4 text-2xl font-bold tracking-tight">{savingsLoaded ? `$${averageContribution.toFixed(2)}` : "—"}</p></div>
-          <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm"><span className="text-sm font-medium text-muted-foreground">Latest activity</span><p className="mt-4 truncate text-2xl font-bold tracking-tight">{savingsLoaded && latestContribution ? `$${latestContribution.usdAmount.toFixed(2)}` : savingsLoaded ? "$0.00" : "—"}</p></div>
-        </section>
-
-        <section className="mb-6"><CurrencyConverter /></section>
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <aside id="add-saving" className="space-y-6 xl:sticky xl:top-[96px] xl:self-start"><SavingsTotal totalUSD={totalUSD} isLoaded={savingsLoaded} addSaving={addSaving} /><SavingsForm addSaving={addSaving} disabled={!savingsLoaded || !user} /></aside>
-          <div className="min-w-0 space-y-6">
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-5"><div className="lg:col-span-3"><SavingsPieChart savings={savings} isLoaded={savingsLoaded} /></div><div className="lg:col-span-2"><SavingsSummaryCard savings={savings} isLoaded={savingsLoaded} /></div></div>
-            <SavingsChart savings={savings} isLoaded={savingsLoaded} />
-            <SavingsList savings={savings} isLoaded={savingsLoaded} deleteSaving={deleteSaving} />
-          </div>
-        </div>
-      </main>
-      <footer className="border-t border-border/50 px-6 py-8 text-center text-xs text-muted-foreground"><p>Built for financial freedom · JUSU © {new Date().getFullYear()}</p></footer>
-    </div>
-  );
+  return <div className="min-h-screen bg-background text-foreground">
+    <header className="sticky top-0 z-30 border-b border-border/50 bg-background/90 backdrop-blur-xl"><div className="mx-auto flex min-h-[72px] max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8"><div className="flex items-center gap-5"><Logo/><nav className="hidden items-center gap-1 md:flex"><Link href="/" className="rounded-xl bg-primary/10 px-3 py-2 text-sm font-semibold text-primary">Dashboard</Link><Link href="/goals" className="rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted">Goals</Link><Link href="/transactions" className="rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted">Activity</Link><Link href="/analytics" className="rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted">Analytics</Link><Link href="/jusu-rush" className="rounded-xl px-3 py-2 text-sm font-black text-cyan-500 hover:bg-cyan-500/10">JUSU RUSH</Link></nav></div><div className="flex items-center gap-2"><Button onClick={()=>document.getElementById("add-saving")?.scrollIntoView({behavior:"smooth"})} className="hidden rounded-xl sm:flex"><Plus className="mr-2 h-4 w-4"/>Add savings</Button><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" className="h-10 w-10 rounded-full p-0"><Avatar className="h-10 w-10 border border-border/60"><AvatarImage src={user.photoURL??""}/><AvatarFallback className="bg-primary/10 font-semibold text-primary">{user.isAnonymous?<UserIcon className="h-5 w-5"/>:getInitials(user.email)}</AvatarFallback></Avatar></Button></DropdownMenuTrigger><DropdownMenuContent className="w-60 rounded-2xl p-2" align="end"><DropdownMenuLabel className="px-3 py-2 font-normal"><p className="text-sm font-semibold">My Account</p><p className="mt-1 truncate text-xs text-muted-foreground">{user.isAnonymous?"Anonymous User":user.email}</p></DropdownMenuLabel><DropdownMenuSeparator/><DropdownMenuItem asChild><Link href="/profile">Profile & settings</Link></DropdownMenuItem><DropdownMenuItem onClick={handleLogout} className="rounded-xl"><LogOut className="mr-2 h-4 w-4"/>Log out</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></div></header>
+    <main className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <section className="mb-7 overflow-hidden rounded-[28px] border border-primary/10 bg-gradient-to-br from-primary/[0.13] via-card to-card p-6 shadow-sm sm:p-8"><div className="flex flex-col justify-between gap-6 md:flex-row md:items-center"><div className="max-w-2xl"><div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-background/70 px-3 py-1.5 text-xs font-semibold text-primary backdrop-blur"><Sparkles className="h-3.5 w-3.5"/>Financial overview</div><h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Build your savings, one step at a time.</h1><p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">Track contributions, understand your progress, and keep your financial goals visible.</p></div><Button className="h-11 rounded-xl px-5" onClick={()=>document.getElementById("add-saving")?.scrollIntoView({behavior:"smooth"})}><Plus className="mr-2 h-4 w-4"/>Add savings</Button></div></section>
+      <section className="mb-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Link href="/goals" className="rounded-2xl border bg-card p-5 hover:border-primary/30"><Target className="h-5 w-5 text-primary"/><p className="mt-4 text-sm font-semibold">Goals</p><p className="mt-1 text-xs text-muted-foreground">Turn targets into progress</p></Link><Link href="/transactions" className="rounded-2xl border bg-card p-5 hover:border-primary/30"><History className="h-5 w-5 text-primary"/><p className="mt-4 text-sm font-semibold">Activity</p><p className="mt-1 text-xs text-muted-foreground">Review your money movement</p></Link><Link href="/analytics" className="rounded-2xl border bg-card p-5 hover:border-primary/30"><BarChart3 className="h-5 w-5 text-primary"/><p className="mt-4 text-sm font-semibold">Analytics</p><p className="mt-1 text-xs text-muted-foreground">See your saving momentum</p></Link><Link href="/jusu-rush" className="rounded-2xl border border-cyan-400/20 bg-cyan-500/[.06] p-5 hover:border-cyan-400/50"><Gamepad2 className="h-5 w-5 text-cyan-400"/><p className="mt-4 text-sm font-black">JUSU RUSH</p><p className="mt-1 text-xs text-muted-foreground">Race, collect and rush</p></Link></section>
+      <section id="jusu-rush" className="mb-7 overflow-hidden rounded-[28px] border border-cyan-400/20 bg-gradient-to-br from-cyan-500/[0.13] via-card to-card p-6 shadow-sm sm:p-8"><div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between"><div className="max-w-2xl"><div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-bold text-cyan-500"><Gamepad2 className="h-3.5 w-3.5"/>2-PLAYER GAME</div><h2 className="text-3xl font-black tracking-tight sm:text-4xl">JUSU RUSH</h2><p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">Race a friend on another phone, collect virtual coins, grab boosts, and rush to the finish.</p><div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-muted-foreground"><span className="rounded-full bg-muted px-3 py-1.5"><Trophy className="mr-1 inline h-3.5 w-3.5"/>Race to win</span><span className="rounded-full bg-muted px-3 py-1.5"><Zap className="mr-1 inline h-3.5 w-3.5"/>Boost & rush</span><span className="rounded-full bg-muted px-3 py-1.5"><Wallet className="mr-1 inline h-3.5 w-3.5"/>Collect value</span></div></div><Button size="lg" className="h-12 rounded-xl bg-cyan-500 px-7 font-black text-slate-950 hover:bg-cyan-400" onClick={()=>router.push("/jusu-rush")}><Gamepad2 className="mr-2 h-5 w-5"/>PLAY JUSU RUSH</Button></div></section>
+      <section className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3"><div className="rounded-2xl border bg-card p-5"><span className="text-sm font-medium text-muted-foreground">Contributions</span><p className="mt-4 text-2xl font-bold">{savingsLoaded?contributionCount:"—"}</p></div><div className="rounded-2xl border bg-card p-5"><span className="text-sm font-medium text-muted-foreground">Average deposit</span><p className="mt-4 text-2xl font-bold">{savingsLoaded?`$${averageContribution.toFixed(2)}`:"—"}</p></div><div className="rounded-2xl border bg-card p-5"><span className="text-sm font-medium text-muted-foreground">Latest activity</span><p className="mt-4 truncate text-2xl font-bold">{savingsLoaded&&latestContribution?`$${latestContribution.usdAmount.toFixed(2)}`:savingsLoaded?"$0.00":"—"}</p></div></section>
+      <section className="mb-6"><CurrencyConverter/></section><div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_minmax(0,1fr)]"><aside id="add-saving" className="space-y-6 xl:sticky xl:top-[96px] xl:self-start"><SavingsTotal totalUSD={totalUSD} isLoaded={savingsLoaded} addSaving={addSaving}/><SavingsForm addSaving={addSaving} disabled={!savingsLoaded||!user}/></aside><div className="min-w-0 space-y-6"><div className="grid grid-cols-1 gap-6 lg:grid-cols-5"><div className="lg:col-span-3"><SavingsPieChart savings={savings} isLoaded={savingsLoaded}/></div><div className="lg:col-span-2"><SavingsSummaryCard savings={savings} isLoaded={savingsLoaded}/></div></div><SavingsChart savings={savings} isLoaded={savingsLoaded}/><SavingsList savings={savings} isLoaded={savingsLoaded} deleteSaving={deleteSaving}/></div></div>
+    </main><footer className="border-t border-border/50 px-6 py-8 text-center text-xs text-muted-foreground">Built for financial freedom · JUSU © {new Date().getFullYear()}</footer></div>;
 }
