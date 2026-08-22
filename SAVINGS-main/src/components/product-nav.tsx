@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const items=[['/','Home'],['/goals','Goals'],['/transactions','Activity'],['/jusu-rush','RUSH'],['/analytics','Analytics'],['/profile','Profile']];
+const items=[['/','Home'],['/goals','Goals'],['/transactions','Activity'],['/rewards','Rewards'],['/jusu-rush','RUSH'],['/analytics','Analytics'],['/profile','Profile']];
 
 export default function ProductNav(){
  const path=usePathname();
