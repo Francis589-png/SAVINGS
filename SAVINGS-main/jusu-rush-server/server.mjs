@@ -2,6 +2,7 @@ import { WebSocketServer } from 'ws';
 import { randomBytes } from 'node:crypto';
 
 const port = Number(process.env.PORT || 8080);
+const RACE_LENGTH = 5000;
 const rooms = new Map();
 const wss = new WebSocketServer({ port });
 
@@ -27,7 +28,6 @@ wss.on('connection', ws => {
       const code = String(message.room || '').trim().toUpperCase();
       if (!/^[A-Z0-9]{4,8}$/.test(code)) return send(ws, { type: 'error', message: 'Invalid room code' });
       let room = rooms.get(code);
-      // The current web client generates the room code locally. Create it on first join.
       if (!room) { room = { players: new Map(), createdAt: Date.now() }; rooms.set(code, room); }
       if (room.players.size >= 2) return send(ws, { type: 'error', message: 'Room is full' });
       const requested = Number(message.player) === 2 ? 2 : 1;
@@ -46,7 +46,7 @@ wss.on('connection', ws => {
 
     if (message.type === 'state') {
       me.x = Math.max(-1, Math.min(1, Number(message.x) || 0));
-      me.z = Math.max(0, Math.min(2400, Number(message.z) || 0));
+      me.z = Math.max(0, Math.min(RACE_LENGTH, Number(message.z) || 0));
       me.score = Math.max(0, Number(message.score) || 0);
       me.finished = Boolean(message.finished);
       for (const p of room.players.values()) if (p.ws !== ws) send(p.ws, state(room));
